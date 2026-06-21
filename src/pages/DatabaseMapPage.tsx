@@ -340,9 +340,128 @@ const relationsData: TableRelation[] = [
   { fromTable: 'amparadora_conversations', toTable: 'amparadora_messages', fromColumn: 'id', toColumn: 'conversation_id', type: 'one-to-many' }
 ];
 
+interface PageDefinition {
+  id: string;
+  name: string;
+  label: string;
+  status: 'connected' | 'partial' | 'mock';
+  statusLabel: string;
+  description: string;
+  storageInfo: string;
+  tables: string[];
+  flow: {
+    action: string;
+    targetTable: string;
+    description: string;
+  }[];
+}
+
+const pagesData: PageDefinition[] = [
+  {
+    id: 'projects',
+    name: 'projects',
+    label: 'Atacar Objetivos',
+    status: 'connected',
+    statusLabel: '100% Conectado',
+    description: 'Painel estratégico de objetivos evolutivos, metas e tarefas operacionais.',
+    storageInfo: 'Supabase PostgreSQL (Tabelas: objectives, goals, projects, tasks)',
+    tables: ['objectives', 'tasks'],
+    flow: [
+      { action: 'Criar Objetivo', targetTable: 'objectives', description: 'Grava metadados do alvo na tabela objectives.' },
+      { action: 'Criar Meta', targetTable: 'objectives', description: 'Insere uma meta acoplada atualizando a coluna metas.' },
+      { action: 'Criar/Atualizar Tarefa', targetTable: 'tasks', description: 'Insere/atualiza tarefa na tabela tasks, aplicando limpeza de chaves vazias.' }
+    ]
+  },
+  {
+    id: 'diary',
+    name: 'diary',
+    label: 'Diário de Bordo',
+    status: 'connected',
+    statusLabel: '100% Conectado',
+    description: 'Diário de bordo cotidiano para autoavaliação holossomática e registros energéticos.',
+    storageInfo: 'Supabase PostgreSQL (Tabela: diary_entries)',
+    tables: ['diary_entries'],
+    flow: [
+      { action: 'Registrar Cotidiano', targetTable: 'diary_entries', description: 'Insere ou edita registros com pontuação de sintonia biológica.' }
+    ]
+  },
+  {
+    id: 'finances',
+    name: 'finances',
+    label: 'Dinheiro Proéxis (Finanças)',
+    status: 'connected',
+    statusLabel: '100% Conectado',
+    description: 'Mapeamento de investimentos, teto de despesas e alavancagem profissional.',
+    storageInfo: 'Supabase PostgreSQL (Tabelas: financial_categories, financial_transactions)',
+    tables: ['financial_categories', 'financial_transactions'],
+    flow: [
+      { action: 'Nova Categoria', targetTable: 'financial_categories', description: 'Cria limites financeiros específicos.' },
+      { action: 'Novo Lançamento', targetTable: 'financial_transactions', description: 'Associa custos operacionais a uma categoria no banco.' }
+    ]
+  },
+  {
+    id: 'presences',
+    name: 'presences',
+    label: 'Presenças',
+    status: 'mock',
+    statusLabel: 'Local / Em Memória',
+    description: 'Mapa de sintonia mental e parapsíquica com mentores e referências humanas.',
+    storageInfo: 'Memória Volátil do Navegador (Array localPresences - Redefine no reload)',
+    tables: ['presences'],
+    flow: [
+      { action: 'Novo Mentor', targetTable: 'presences', description: 'Adiciona na lista local temporariamente, sem escrita no banco Supabase.' }
+    ]
+  },
+  {
+    id: 'mural',
+    name: 'mural',
+    label: 'Mural de Conquistas',
+    status: 'partial',
+    statusLabel: 'Conexão Parcial',
+    description: 'Cofre de conquistas, registros de vitórias e upload físico de arquivos.',
+    storageInfo: 'Supabase PostgreSQL (metadados) + VPS Storage Disk (arquivos físicos)',
+    tables: ['mural_achievements', 'mural_credentials'],
+    flow: [
+      { action: 'Salvar Conquista', targetTable: 'mural_achievements', description: 'Grava título e valor no banco, e envia imagem de capa para a VPS.' },
+      { action: 'Cofre e PDFs', targetTable: 'mural_credentials', description: 'Faz upload físico de arquivos e insere os links de acesso no banco.' }
+    ]
+  },
+  {
+    id: 'workspace',
+    name: 'workspace',
+    label: 'Gerenciador de Workspace',
+    status: 'connected',
+    statusLabel: '100% Conectado',
+    description: 'Criação de pastas organizadas e notas rich-text escritas no editor.',
+    storageInfo: 'Supabase PostgreSQL (Tabelas: workspaces, folders, pages)',
+    tables: ['workspaces', 'folders', 'documents'],
+    flow: [
+      { action: 'Novo Workspace', targetTable: 'workspaces', description: 'Cria uma nova área de trabalho de anotação.' },
+      { action: 'Criar Pasta', targetTable: 'folders', description: 'Cria pastas organizacionais aninhadas.' },
+      { action: 'Escrever Documento', targetTable: 'documents', description: 'Salva anotações formatadas no banco.' }
+    ]
+  },
+  {
+    id: 'amparadora',
+    name: 'amparadora',
+    label: 'Amparadora AI',
+    status: 'connected',
+    statusLabel: '100% Conectado',
+    description: 'Diálogos de mentoria, calibração consciencial e suporte cognitivo.',
+    storageInfo: 'Supabase PostgreSQL (Tabelas: amparadora_conversations, amparadora_messages)',
+    tables: ['amparadora_conversations', 'amparadora_messages'],
+    flow: [
+      { action: 'Criar Chat', targetTable: 'amparadora_conversations', description: 'Inicia nova conversa estruturada.' },
+      { action: 'Enviar Mensagem', targetTable: 'amparadora_messages', description: 'Grava as mensagens do histórico da conversa.' }
+    ]
+  }
+];
+
 export function DatabaseMapPage() {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<'tables' | 'pages'>('tables');
   const [selectedTable, setSelectedTable] = useState<TableDefinition | null>(tablesData[0]);
+  const [selectedPage, setSelectedPage] = useState<PageDefinition | null>(pagesData[0]);
   const [hoveredTableId, setHoveredTableId] = useState<string | null>(null);
 
   // Calcula conexões ativas para destacar
@@ -390,9 +509,31 @@ export function DatabaseMapPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <CheckCircle size={10} /> Real-Time Sync Ativado
+          <div className="flex flex-wrap items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="bg-[var(--surface)] border border-[var(--border)] p-1 rounded-2xl flex gap-1">
+              <button
+                onClick={() => {
+                  haptics.lightClick();
+                  setViewMode('tables');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${viewMode === 'tables' ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20' : 'text-[var(--text-secondary)] hover:text-[var(--text)] border border-transparent'}`}
+              >
+                Por Tabelas
+              </button>
+              <button
+                onClick={() => {
+                  haptics.lightClick();
+                  setViewMode('pages');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${viewMode === 'pages' ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20' : 'text-[var(--text-secondary)] hover:text-[var(--text)] border border-transparent'}`}
+              >
+                Por Páginas (CRM)
+              </button>
+            </div>
+
+            <span className="text-[10px] font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 px-3 py-2 rounded-full flex items-center gap-1.5">
+              <CheckCircle size={10} /> Real-Time Sync
             </span>
           </div>
         </header>
@@ -403,266 +544,466 @@ export function DatabaseMapPage() {
             <Info size={20} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-[var(--text)]">Jornada Interativa de Aprendizado</h3>
+            <h3 className="text-sm font-bold text-[var(--text)]">
+              {viewMode === 'tables' ? 'Jornada Interativa de Aprendizado' : 'Visão Geral por Página (CRM de Dados)'}
+            </h3>
             <p className="text-xs text-[var(--text-secondary)] font-semibold leading-relaxed">
-              Diferente de diagramas de banco de dados chatos e técnicos, este mapa mostra o fluxo da sua vida digital. Selecione uma tabela para ver onde as informações **nascem**, onde são **armazenadas** e em quais **telas** elas atualizam a sua experiência em tempo real.
+              {viewMode === 'tables' 
+                ? 'Diferente de diagramas de banco de dados chatos e técnicos, este mapa mostra o fluxo da sua vida digital. Selecione uma tabela para ver onde as informações nascem, onde são armazenadas e em quais telas elas atualizam.'
+                : 'Analise quais tabelas do banco de dados dão suporte a cada uma das telas do sistema. Veja com transparência quais recursos estão 100% integrados ao Supabase e quais estão temporariamente rodando apenas em memória.'}
             </p>
           </div>
         </section>
 
         {/* Main Grid split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Visual Map representation of Tables (8 columns) */}
+          
+          {/* Left Column: List of Tables or Pages (8 columns) */}
           <div className="lg:col-span-8 space-y-6">
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[2.5rem] p-6 md:p-8 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
-                  <Activity size={14} className="text-cyan-500 animate-pulse" /> Estrutura do Organismo (Tabelas)
-                </span>
-                <span className="text-[9px] uppercase font-mono text-[var(--text-secondary)]">Selecione para ver conexões</span>
-              </div>
+              
+              {viewMode === 'tables' ? (
+                <>
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <Activity size={14} className="text-cyan-500 animate-pulse" /> Estrutura do Organismo (Tabelas)
+                    </span>
+                    <span className="text-[9px] uppercase font-mono text-[var(--text-secondary)]">Selecione para ver conexões</span>
+                  </div>
 
-              {/* Flex list of Tables - Custom design */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {tablesData.map((table) => {
-                  const isSelected = selectedTable?.id === table.id;
-                  const isHovered = hoveredTableId === table.id;
-                  
-                  // Verifica relacionamento com a selecionada
-                  const isConnected = selectedTable && activeConnectedIds.includes(table.id);
-                  const isMainSelected = selectedTable?.id === table.id;
+                  {/* Flex list of Tables - Custom design */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {tablesData.map((table) => {
+                      const isSelected = selectedTable?.id === table.id;
+                      const isHovered = hoveredTableId === table.id;
+                      const isConnected = selectedTable && activeConnectedIds.includes(table.id);
+                      const isMainSelected = selectedTable?.id === table.id;
 
-                  // Estilo dinâmico baseado em seleção/conexão
-                  let borderStyle = 'border-[var(--border)] opacity-60';
-                  let bgStyle = 'bg-[var(--bg)]/40';
-                  let shadowStyle = '';
+                      let borderStyle = 'border-[var(--border)] opacity-60';
+                      let bgStyle = 'bg-[var(--bg)]/40';
+                      let shadowStyle = '';
 
-                  if (isMainSelected) {
-                    borderStyle = 'border-cyan-500 ring-2 ring-cyan-500/10';
-                    bgStyle = 'bg-cyan-500/5';
-                    shadowStyle = 'shadow-lg';
-                  } else if (isConnected) {
-                    borderStyle = 'border-violet-500/60 border-dashed';
-                    bgStyle = 'bg-violet-500/[0.02]';
-                    shadowStyle = 'shadow-sm';
-                  }
+                      if (isMainSelected) {
+                        borderStyle = 'border-cyan-500 ring-2 ring-cyan-500/10';
+                        bgStyle = 'bg-cyan-500/5';
+                        shadowStyle = 'shadow-lg';
+                      } else if (isConnected) {
+                        borderStyle = 'border-violet-500/60 border-dashed';
+                        bgStyle = 'bg-violet-500/[0.02]';
+                        shadowStyle = 'shadow-sm';
+                      }
 
-                  if (isHovered) {
-                    borderStyle = 'border-cyan-400';
-                  }
-                  
-                  if (isSelected || isConnected || !selectedTable) {
-                    // Mantém opacidade normal
-                  } else {
-                    // Apaga as outras
-                  }
+                      if (isHovered) {
+                        borderStyle = 'border-cyan-400';
+                      }
 
-                  return (
-                    <motion.div
-                      layout
-                      key={table.id}
-                      onClick={() => {
-                        haptics.lightClick();
-                        setSelectedTable(table);
-                      }}
-                      onMouseEnter={() => setHoveredTableId(table.id)}
-                      onMouseLeave={() => setHoveredTableId(null)}
-                      className={`cursor-pointer p-4 rounded-3xl border ${borderStyle} ${bgStyle} ${shadowStyle} transition-all duration-300 hover:scale-102 flex items-center gap-3 relative`}
-                    >
-                      <div 
-                        className="p-3 rounded-2xl shrink-0" 
-                        style={{ backgroundColor: `${table.color}15`, color: table.color }}
-                      >
-                        {table.icon}
-                      </div>
-                      
-                      <div className="min-w-0">
-                        <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block truncate leading-none mb-1">
-                          {table.name}
-                        </span>
-                        <h4 className="text-xs font-black text-[var(--text)] truncate leading-none">
-                          {table.label}
-                        </h4>
-                      </div>
-
-                      {/* Line connector visualization helpers */}
-                      {isMainSelected && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-500" />
-                      )}
-                      {isConnected && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-400/80" />
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Data Flow connections path */}
-              <div className="bg-[var(--bg)]/50 border border-[var(--border)] rounded-3xl p-5 space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5 border-b border-[var(--border)] pb-2">
-                  <Link2 size={12} className="text-cyan-400" /> Relações Ativas da Tabela Selecionada
-                </h4>
-                
-                {selectedTable ? (
-                  <div className="space-y-3">
-                    {relationsData
-                      .filter(r => r.fromTable === selectedTable.id || r.toTable === selectedTable.id)
-                      .map((rel, idx) => {
-                        const isFrom = rel.fromTable === selectedTable.id;
-                        const relatedId = isFrom ? rel.toTable : rel.fromTable;
-                        const relatedTable = tablesData.find(t => t.id === relatedId);
-
-                        return (
-                          <div key={idx} className="flex items-center gap-3 text-xs bg-[var(--surface-hover)]/30 border border-[var(--border)]/35 p-3 rounded-2xl">
-                            <span className="font-bold text-cyan-500">{selectedTable.label}</span>
-                            <ArrowRight size={12} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
-                            <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-[var(--border)] text-[var(--text-secondary)] font-mono">
-                              {rel.type === 'one-to-many' ? '1 ➔ N' : '1 ➔ 1'}
-                            </span>
-                            <ArrowRight size={12} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
-                            <span className="font-bold text-violet-500">{relatedTable?.label || relatedId}</span>
-                            <span className="text-[10px] text-[var(--text-secondary)] ml-auto font-mono opacity-60">
-                              ({rel.fromColumn} ➔ {rel.toColumn})
-                            </span>
+                      return (
+                        <motion.div
+                          layout
+                          key={table.id}
+                          onClick={() => {
+                            haptics.lightClick();
+                            setSelectedTable(table);
+                          }}
+                          onMouseEnter={() => setHoveredTableId(table.id)}
+                          onMouseLeave={() => setHoveredTableId(null)}
+                          className={`cursor-pointer p-4 rounded-3xl border ${borderStyle} ${bgStyle} ${shadowStyle} transition-all duration-300 hover:scale-102 flex items-center gap-3 relative`}
+                        >
+                          <div 
+                            className="p-3 rounded-2xl shrink-0" 
+                            style={{ backgroundColor: `${table.color}15`, color: table.color }}
+                          >
+                            {table.icon}
                           </div>
-                        );
-                      })}
+                          
+                          <div className="min-w-0">
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block truncate leading-none mb-1">
+                              {table.name}
+                            </span>
+                            <h4 className="text-xs font-black text-[var(--text)] truncate leading-none">
+                              {table.label}
+                            </h4>
+                          </div>
+
+                          {isMainSelected && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-500" />
+                          )}
+                          {isConnected && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-400/80" />
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Data Flow connections path */}
+                  <div className="bg-[var(--bg)]/50 border border-[var(--border)] rounded-3xl p-5 space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5 border-b border-[var(--border)] pb-2">
+                      <Link2 size={12} className="text-cyan-400" /> Relações Ativas da Tabela Selecionada
+                    </h4>
                     
-                    {relationsData.filter(r => r.fromTable === selectedTable.id || r.toTable === selectedTable.id).length === 0 && (
-                      <p className="text-[10px] text-[var(--text-secondary)] font-semibold">Esta tabela não possui chaves estrangeiras vinculadas.</p>
+                    {selectedTable ? (
+                      <div className="space-y-3">
+                        {relationsData
+                          .filter(r => r.fromTable === selectedTable.id || r.toTable === selectedTable.id)
+                          .map((rel, idx) => {
+                            const isFrom = rel.fromTable === selectedTable.id;
+                            const relatedId = isFrom ? rel.toTable : rel.fromTable;
+                            const relatedTable = tablesData.find(t => t.id === relatedId);
+
+                            return (
+                              <div key={idx} className="flex items-center gap-3 text-xs bg-[var(--surface-hover)]/30 border border-[var(--border)]/35 p-3 rounded-2xl">
+                                <span className="font-bold text-cyan-500">{selectedTable.label}</span>
+                                <ArrowRight size={12} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
+                                <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-[var(--border)] text-[var(--text-secondary)] font-mono">
+                                  {rel.type === 'one-to-many' ? '1 ➔ N' : '1 ➔ 1'}
+                                </span>
+                                <ArrowRight size={12} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
+                                <span className="font-bold text-violet-500">{relatedTable?.label || relatedId}</span>
+                                <span className="text-[10px] text-[var(--text-secondary)] ml-auto font-mono opacity-60">
+                                  ({rel.fromColumn} ➔ {rel.toColumn})
+                                </span>
+                              </div>
+                            );
+                          })}
+                        
+                        {relationsData.filter(r => r.fromTable === selectedTable.id || r.toTable === selectedTable.id).length === 0 && (
+                          <p className="text-[10px] text-[var(--text-secondary)] font-semibold">Esta tabela não possui chaves estrangeiras vinculadas.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[var(--text-secondary)] font-semibold">Selecione uma tabela acima para visualizar suas conexões lógicas.</p>
                     )}
                   </div>
-                ) : (
-                  <p className="text-xs text-[var(--text-secondary)] font-semibold">Selecione uma tabela acima para visualizar suas conexões lógicas.</p>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <Server size={14} className="text-cyan-500" /> Auditoria de Integração por Páginas
+                    </span>
+                    <span className="text-[9px] uppercase font-mono text-[var(--text-secondary)]">Selecione a tela para mapear dados</span>
+                  </div>
+
+                  {/* List of Pages */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {pagesData.map((page) => {
+                      const isSelected = selectedPage?.id === page.id;
+                      
+                      let statusBorder = 'border-[var(--border)]';
+                      let statusBg = 'bg-[var(--bg)]/40';
+                      let statusBadge = '';
+                      
+                      if (page.status === 'connected') {
+                        statusBadge = 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+                      } else if (page.status === 'partial') {
+                        statusBadge = 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+                      } else {
+                        statusBadge = 'bg-red-500/10 text-red-500 border-red-500/20';
+                      }
+
+                      if (isSelected) {
+                        statusBorder = 'border-cyan-500 ring-2 ring-cyan-500/10';
+                        statusBg = 'bg-cyan-500/5';
+                      }
+
+                      return (
+                        <div
+                          key={page.id}
+                          onClick={() => {
+                            haptics.lightClick();
+                            setSelectedPage(page);
+                          }}
+                          className={`cursor-pointer p-5 rounded-3xl border ${statusBorder} ${statusBg} transition-all duration-300 hover:scale-102 flex flex-col justify-between h-44`}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-black text-[var(--text)]">{page.label}</h4>
+                              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusBadge}`}>
+                                {page.statusLabel}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed line-clamp-2">
+                              {page.description}
+                            </p>
+                          </div>
+
+                          <div className="border-t border-[var(--border)]/60 pt-2 flex flex-wrap gap-1.5 mt-auto">
+                            {page.tables.map(tName => {
+                              const tbl = tablesData.find(t => t.name === tName);
+                              return (
+                                <span 
+                                  key={tName} 
+                                  className="text-[9px] font-semibold bg-[var(--surface-hover)] border border-[var(--border)] px-2 py-0.5 rounded-lg text-[var(--text-secondary)] flex items-center gap-1"
+                                >
+                                  <Database size={8} /> {tbl?.label || tName}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
             </div>
           </div>
 
-          {/* Right Column: Inspector Panel detailing Flow (4 columns) */}
+          {/* Right Column: Inspector Panel (4 columns) */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col relative overflow-hidden">
               <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
               
-              <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-secondary)] mb-6 flex items-center gap-2 border-b border-[var(--border)] pb-2">
-                <Info size={14} className="text-cyan-500 animate-pulse" /> Fluxo Vital do Dado
-              </h3>
+              {viewMode === 'tables' ? (
+                <>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-secondary)] mb-6 flex items-center gap-2 border-b border-[var(--border)] pb-2">
+                    <Info size={14} className="text-cyan-500 animate-pulse" /> Fluxo Vital do Dado
+                  </h3>
 
-              <AnimatePresence mode="wait">
-                {selectedTable ? (
-                  <motion.div
-                    key={selectedTable.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-6"
-                  >
-                    {/* Table Title */}
-                    <div className="flex items-center gap-4">
-                      <div 
-                        className="p-4 rounded-2xl" 
-                        style={{ backgroundColor: `${selectedTable.color}15`, color: selectedTable.color }}
+                  <AnimatePresence mode="wait">
+                    {selectedTable ? (
+                      <motion.div
+                        key={selectedTable.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-6"
                       >
-                        {selectedTable.icon}
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-[var(--text)] tracking-tight leading-snug">
-                          {selectedTable.label}
-                        </h2>
-                        <span className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--surface-hover)] border border-[var(--border)] px-2.5 py-0.5 rounded-full mt-1 inline-block uppercase">
-                          Tabela: {selectedTable.name}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Table Description */}
-                    <div>
-                      <h4 className="text-[9px] font-black uppercase tracking-wider text-[var(--text-secondary)] mb-1">O que armazena</h4>
-                      <p className="text-xs text-[var(--text)] leading-relaxed font-semibold">
-                        {selectedTable.description}
-                      </p>
-                    </div>
-
-                    {/* Where it is born (Origin) */}
-                    <div className="p-4 rounded-2xl bg-cyan-500/[0.03] border border-cyan-500/10">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded inline-block mb-2">
-                        1. Onde nasce (Origem)
-                      </span>
-                      <p className="text-xs text-[var(--text)] font-bold">
-                        Página: {selectedTable.origin.page}
-                      </p>
-                      <p className="text-[11px] text-[var(--text-secondary)] font-semibold mt-1">
-                        Ação: {selectedTable.origin.action}
-                      </p>
-                    </div>
-
-                    {/* Where it is saved (Destination) */}
-                    <div className="p-4 rounded-2xl bg-violet-500/[0.03] border border-violet-500/10">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded inline-block mb-2">
-                        2. Onde é gravado (Destino)
-                      </span>
-                      <p className="text-xs text-[var(--text)] font-semibold leading-relaxed">
-                        {selectedTable.destination}
-                      </p>
-                    </div>
-
-                    {/* Pages consuming it */}
-                    <div className="p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded inline-block mb-2">
-                        3. Onde é consumido (Uso)
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {selectedTable.consumption.map((page, idx) => (
-                          <span 
-                            key={idx} 
-                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text)]"
+                        {/* Table Title */}
+                        <div className="flex items-center gap-4">
+                          <div 
+                            className="p-4 rounded-2xl" 
+                            style={{ backgroundColor: `${selectedTable.color}15`, color: selectedTable.color }}
                           >
-                            {page}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Columns Inspector */}
-                    <div className="border border-[var(--border)] rounded-3xl p-4 bg-[var(--surface-hover)]/30">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3 border-b border-[var(--border)] pb-2 flex items-center justify-between">
-                        <span>Campos do Registro (Colunas)</span>
-                        <span className="font-mono text-[9px] opacity-60">({selectedTable.columns.length})</span>
-                      </h4>
-                      
-                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto no-scrollbar pr-1">
-                        {selectedTable.columns.map((col, idx) => (
-                          <div key={idx} className="text-[11px] leading-tight space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold font-mono text-[var(--text)]">{col.name}</span>
-                              <span className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--border)] px-1.5 rounded">
-                                {col.type}
-                              </span>
-                              {col.key && (
-                                <span className={`text-[8px] font-mono px-1.5 rounded font-black uppercase ${col.key === 'PK' ? 'bg-amber-400/20 text-amber-500 border border-amber-400/30' : 'bg-violet-400/20 text-violet-500 border border-violet-400/30'}`}>
-                                  {col.key}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-snug">
-                              {col.description}
-                            </p>
+                            {selectedTable.icon}
                           </div>
-                        ))}
+                          <div>
+                            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight leading-snug">
+                              {selectedTable.label}
+                            </h2>
+                            <span className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--surface-hover)] border border-[var(--border)] px-2.5 py-0.5 rounded-full mt-1 inline-block uppercase">
+                              Tabela: {selectedTable.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Table Description */}
+                        <div>
+                          <h4 className="text-[9px] font-black uppercase tracking-wider text-[var(--text-secondary)] mb-1">O que armazena</h4>
+                          <p className="text-xs text-[var(--text)] leading-relaxed font-semibold">
+                            {selectedTable.description}
+                          </p>
+                        </div>
+
+                        {/* Where it is born (Origin) */}
+                        <div className="p-4 rounded-2xl bg-cyan-500/[0.03] border border-cyan-500/10">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded inline-block mb-2">
+                            1. Onde nasce (Origem)
+                          </span>
+                          <p className="text-xs text-[var(--text)] font-bold">
+                            Página: {selectedTable.origin.page}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-secondary)] font-semibold mt-1">
+                            Ação: {selectedTable.origin.action}
+                          </p>
+                        </div>
+
+                        {/* Where it is saved (Destination) */}
+                        <div className="p-4 rounded-2xl bg-violet-500/[0.03] border border-violet-500/10">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded inline-block mb-2">
+                            2. Onde é gravado (Destino)
+                          </span>
+                          <p className="text-xs text-[var(--text)] font-semibold leading-relaxed">
+                            {selectedTable.destination}
+                          </p>
+                        </div>
+
+                        {/* Pages consuming it */}
+                        <div className="p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded inline-block mb-2">
+                            3. Onde é consumido (Uso)
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {selectedTable.consumption.map((page, idx) => (
+                              <span 
+                                key={idx} 
+                                className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text)]"
+                              >
+                                {page}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Columns Inspector */}
+                        <div className="border border-[var(--border)] rounded-3xl p-4 bg-[var(--surface-hover)]/30">
+                          <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] mb-3 border-b border-[var(--border)] pb-2 flex items-center justify-between">
+                            <span>Campos do Registro (Colunas)</span>
+                            <span className="font-mono text-[9px] opacity-60">({selectedTable.columns.length})</span>
+                          </h4>
+                          
+                          <div className="space-y-2.5 max-h-[220px] overflow-y-auto no-scrollbar pr-1">
+                            {selectedTable.columns.map((col, idx) => (
+                              <div key={idx} className="text-[11px] leading-tight space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold font-mono text-[var(--text)]">{col.name}</span>
+                                  <span className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--border)] px-1.5 rounded">
+                                    {col.type}
+                                  </span>
+                                  {col.key && (
+                                    <span className={`text-[8px] font-mono px-1.5 rounded font-black uppercase ${col.key === 'PK' ? 'bg-amber-400/20 text-amber-500 border border-amber-400/30' : 'bg-violet-400/20 text-violet-500 border border-violet-400/30'}`}>
+                                      {col.key}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-snug">
+                                  {col.description}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <div className="py-20 text-center opacity-50 flex flex-col items-center justify-center gap-3">
+                        <Database size={32} className="text-[var(--text-secondary)] animate-bounce" />
+                        <p className="text-xs text-[var(--text-secondary)] font-semibold">
+                          Selecione uma tabela ao lado para inspecionar seu fluxo de circulação de dados.
+                        </p>
                       </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="py-20 text-center opacity-50 flex flex-col items-center justify-center gap-3">
-                    <Database size={32} className="text-[var(--text-secondary)] animate-bounce" />
-                    <p className="text-xs text-[var(--text-secondary)] font-semibold">
-                      Selecione uma tabela ao lado para inspecionar seu fluxo de circulação de dados.
-                    </p>
-                  </div>
-                )}
-              </AnimatePresence>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-secondary)] mb-6 flex items-center gap-2 border-b border-[var(--border)] pb-2">
+                    <Server size={14} className="text-cyan-500 animate-pulse" /> Detalhes da Página
+                  </h3>
+
+                  <AnimatePresence mode="wait">
+                    {selectedPage ? (
+                      <motion.div
+                        key={selectedPage.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-6"
+                      >
+                        {/* Page Title */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight leading-snug">
+                              {selectedPage.label}
+                            </h2>
+                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${selectedPage.status === 'connected' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : selectedPage.status === 'partial' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                              {selectedPage.statusLabel}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-[var(--text-secondary)] uppercase">
+                            Identificador: {selectedPage.name}
+                          </span>
+                        </div>
+
+                        {/* Storage details */}
+                        <div className="p-4 rounded-2xl bg-cyan-500/[0.03] border border-cyan-500/10">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded inline-block mb-2">
+                            Armazenamento Físico
+                          </span>
+                          <p className="text-xs text-[var(--text)] font-semibold leading-relaxed">
+                            {selectedPage.storageInfo}
+                          </p>
+                        </div>
+
+                        {/* CRM Flow actions */}
+                        <div className="space-y-3">
+                          <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border)] pb-2">
+                            Ações de Entrada / Saída de Dados
+                          </h4>
+                          
+                          <div className="space-y-3">
+                            {selectedPage.flow.map((step, idx) => {
+                              const tbl = tablesData.find(t => t.name === step.targetTable);
+                              return (
+                                <div key={idx} className="p-3 bg-[var(--surface-hover)] border border-[var(--border)] rounded-2xl space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black text-cyan-500">{step.action}</span>
+                                    <span 
+                                      onClick={() => {
+                                        if (tbl) {
+                                          setViewMode('tables');
+                                          setSelectedTable(tbl);
+                                        }
+                                      }}
+                                      className="text-[9px] font-mono text-violet-400 hover:text-violet-300 underline cursor-pointer"
+                                    >
+                                      ➔ {tbl?.label || step.targetTable}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed">
+                                    {step.description}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Interactive Tables link */}
+                        <div className="space-y-2.5">
+                          <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                            Tabelas deste Módulo
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            {selectedPage.tables.map(tName => {
+                              const tbl = tablesData.find(t => t.name === tName);
+                              if (!tbl) return null;
+                              return (
+                                <button
+                                  key={tName}
+                                  onClick={() => {
+                                    setViewMode('tables');
+                                    setSelectedTable(tbl);
+                                    haptics.lightClick();
+                                  }}
+                                  className="p-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-hover)] hover:bg-cyan-500/[0.03] hover:border-cyan-500/30 transition-all flex items-center justify-between text-left"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div 
+                                      className="p-2 rounded-xl text-xs"
+                                      style={{ backgroundColor: `${tbl.color}15`, color: tbl.color }}
+                                    >
+                                      {tbl.icon}
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-black text-[var(--text)]">{tbl.label}</p>
+                                      <p className="text-[9px] font-mono text-[var(--text-secondary)]">tabela: {tbl.name}</p>
+                                    </div>
+                                  </div>
+                                  <ArrowRight size={14} className="text-[var(--text-secondary)] opacity-50" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                      </motion.div>
+                    ) : (
+                      <div className="py-20 text-center opacity-50 flex flex-col items-center justify-center gap-3">
+                        <Server size={32} className="text-[var(--text-secondary)] animate-bounce" />
+                        <p className="text-xs text-[var(--text-secondary)] font-semibold">
+                          Selecione uma página ao lado para inspecionar seus esquemas de banco de dados.
+                        </p>
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+
             </div>
           </div>
+
         </div>
       </div>
     </div>

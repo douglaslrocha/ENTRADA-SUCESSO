@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copia arquivos do root e instala dependências
-COPY package.json package-lock.json ./
-RUN npm ci --notsup
+COPY package.json ./
+RUN npm install --no-audit
 
 # Copia o restante do código do frontend
 COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts eslint.config.js index.html ./
@@ -16,8 +16,8 @@ COPY public/ ./public
 RUN npm run build
 
 # Copia arquivos do backend e instala dependências do backend
-COPY backend/package.json backend/package-lock.json ./backend/
-RUN cd backend && npm ci
+COPY backend/package.json ./backend/
+RUN cd backend && npm install --no-audit
 
 # Copia código do backend e compila
 COPY backend/tsconfig.json ./backend/

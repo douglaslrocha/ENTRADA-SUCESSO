@@ -58,6 +58,8 @@ export interface Task {
   title: string;
   projectId?: string;
   goalId?: string;
+  objectiveId?: string;
+  objectiveTitle?: string;
   parentTaskId?: string | null;
   status?: 'todo' | 'doing' | 'done';
   date?: number;

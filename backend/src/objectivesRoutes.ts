@@ -69,6 +69,7 @@ function mapTaskDbToFrontend(row: any) {
     title: row.title,
     projectId: row.project_id || 'none',
     goalId: row.goal_id || 'none',
+    objectiveId: row.objective_id || 'none',
     parentTaskId: row.parent_task_id || null,
     status: row.status || 'todo',
     date: row.date ? new Date(row.date).getTime() : undefined,
@@ -245,8 +246,8 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
       // 4. Sincroniza Tarefas (Tasks)
       for (const t of tasks) {
         await client.query(`
-          INSERT INTO tasks (id, user_id, goal_id, project_id, parent_task_id, title, status, date, estimated_duration, actual_duration, priority, image_url, completed_at, document_ids, execution_type, energy_work_execution, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+          INSERT INTO tasks (id, user_id, goal_id, project_id, parent_task_id, title, status, date, estimated_duration, actual_duration, priority, image_url, completed_at, document_ids, execution_type, energy_work_execution, objective_id, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP)
           ON CONFLICT (id) DO UPDATE SET
             goal_id = EXCLUDED.goal_id,
             project_id = EXCLUDED.project_id,
@@ -262,6 +263,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
             document_ids = EXCLUDED.document_ids,
             execution_type = EXCLUDED.execution_type,
             energy_work_execution = EXCLUDED.energy_work_execution,
+            objective_id = EXCLUDED.objective_id,
             updated_at = CURRENT_TIMESTAMP
         `, [
           t.id, userId,
@@ -277,7 +279,8 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
           t.completedAt ? new Date(t.completedAt) : null,
           t.documentIds || [],
           t.executionType || 'standard',
-          t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}'
+          t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}',
+          t.objectiveId === 'none' ? null : t.objectiveId
         ]);
       }
 
@@ -470,8 +473,8 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
 
     try {
       const res = await db.query(`
-        INSERT INTO tasks (id, user_id, goal_id, project_id, parent_task_id, title, status, date, estimated_duration, actual_duration, priority, image_url, completed_at, document_ids, execution_type, energy_work_execution, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+        INSERT INTO tasks (id, user_id, goal_id, project_id, parent_task_id, title, status, date, estimated_duration, actual_duration, priority, image_url, completed_at, document_ids, execution_type, energy_work_execution, objective_id, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP)
         ON CONFLICT (id) DO UPDATE SET
           goal_id = EXCLUDED.goal_id,
           project_id = EXCLUDED.project_id,
@@ -487,6 +490,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
           document_ids = EXCLUDED.document_ids,
           execution_type = EXCLUDED.execution_type,
           energy_work_execution = EXCLUDED.energy_work_execution,
+          objective_id = EXCLUDED.objective_id,
           updated_at = CURRENT_TIMESTAMP
         RETURNING *
       `, [
@@ -503,7 +507,8 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
         t.completedAt ? new Date(t.completedAt) : null,
         t.documentIds || [],
         t.executionType || 'standard',
-        t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}'
+        t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}',
+        t.objectiveId === 'none' ? null : t.objectiveId
       ]);
 
       return { success: true, task: mapTaskDbToFrontend(res.rows[0]) };

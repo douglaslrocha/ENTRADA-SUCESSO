@@ -25,6 +25,7 @@ import { fakeDB } from '../../core/fakeDB';
 import { safeLocalStorage } from '../../utils/storage';
 import { organismEventBus } from '../../services/organismEventBus';
 import { documentService } from '../../services/documentService';
+import { objectivesService } from '../../services/objectivesService';
 
 const carouselImages = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCsbslWFAw-IqJ8-3x_UHC7zCnG1wGASjs701H4eh5SJXLZ4TKjVlvxwPp5cSWgGVaxVVG5RwLCj4XV4gHlTlAjSjUPBuwWzNrs0vVS0jsRi5LcpGa9i8sUyKHaq7BIdKbPplxSdOq5z_AhBh61IvlrZd_s9qhA-0fdXfruYJy2WqgiBLfnUUaSyqGA5jmEVB-6twSX48uuQspREvhBPD0ACiIB5-lh7tafA37Zd741C-aT6iTqLWZ-G2UOnNWHCDPDOjP1VyEXbyGA",
@@ -427,6 +428,8 @@ export default function App({
       // Preserve existing valid associations to avoid orphaning tasks when status is changed
       const originalGoalId = foundTask.goalId;
       const originalProjectId = foundTask.projectId;
+      const originalObjectiveId = foundTask.objectiveId;
+      const originalObjectiveTitle = foundTask.objectiveTitle;
 
       Object.assign(foundTask, updatedTask);
       foundTask.status = updatedTask.status === 'completed' ? 'done' : updatedTask.status === 'in-progress' ? 'doing' : 'todo';
@@ -449,15 +452,26 @@ export default function App({
         }
       }
 
+      // Preserve or assign objectiveId & objectiveTitle
+      foundTask.objectiveId = originalObjectiveId || activeObjective.id || 'none';
+      foundTask.objectiveTitle = originalObjectiveTitle || activeObjective.title || 'none';
+
       foundTask.date = new Date(updatedTask.date).getTime();
       safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
       organismEventBus.emit('goalUpdated', foundTask);
+
+      // Save task to backend
+      objectivesService.saveTask(foundTask.id, foundTask).catch(err => {
+        console.warn('[App.tsx] Erro ao sincronizar atualização de tarefa com o backend:', err);
+      });
     } else {
       fakeDB.createTask({
         ...updatedTask,
         id: updatedTask.id,
         title: updatedTask.title,
         goalId: updatedTask.metaId,
+        objectiveId: activeObjective.id,
+        objectiveTitle: activeObjective.title,
         status: updatedTask.status === 'completed' ? 'done' : updatedTask.status === 'in-progress' ? 'doing' : 'todo',
         date: new Date(updatedTask.date).getTime()
       });

@@ -121,15 +121,22 @@ export const objectivesService = {
       // Distribui as tarefas para seus respectivos objetivos
       for (const task of data.tasks || []) {
         let objectiveTitle = 'none';
-        let targetGoalId = task.goalId;
-        if ((!targetGoalId || targetGoalId === 'none') && task.projectId && task.projectId !== 'none') {
-          targetGoalId = projectsMap.get(task.projectId);
+        
+        if (task.objectiveId && task.objectiveId !== 'none') {
+          objectiveTitle = objectivesMap.get(task.objectiveId) || 'none';
         }
 
-        if (targetGoalId && targetGoalId !== 'none') {
-          const objectiveId = goalsMap.get(targetGoalId);
-          if (objectiveId) {
-            objectiveTitle = objectivesMap.get(objectiveId) || 'none';
+        if (objectiveTitle === 'none') {
+          let targetGoalId = task.goalId;
+          if ((!targetGoalId || targetGoalId === 'none') && task.projectId && task.projectId !== 'none') {
+            targetGoalId = projectsMap.get(task.projectId);
+          }
+
+          if (targetGoalId && targetGoalId !== 'none') {
+            const objectiveId = goalsMap.get(targetGoalId);
+            if (objectiveId) {
+              objectiveTitle = objectivesMap.get(objectiveId) || 'none';
+            }
           }
         }
         

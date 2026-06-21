@@ -6,6 +6,11 @@ class ApiService {
       'Content-Type': 'application/json'
     };
     
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+    
     // Simulating generic token inclusion for future-proofing
     const token = localStorage.getItem('auth_token');
     if (token) {

@@ -12,6 +12,13 @@ function safeJsonParse(val: any, fallback: any = []) {
   return val || fallback;
 }
 
+function cleanForeignKey(id: any): string | null {
+  if (!id || id === 'none' || id === 'draft' || id === 'draft-task' || String(id).trim() === '') {
+    return null;
+  }
+  return id;
+}
+
 // Helpers de mapeamento de banco para frontend
 function mapObjectiveDbToFrontend(row: any) {
   return {
@@ -238,7 +245,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
             progress = EXCLUDED.progress,
             updated_at = CURRENT_TIMESTAMP
         `, [
-          proj.id, userId, proj.goalId === 'none' ? null : proj.goalId,
+          proj.id, userId, cleanForeignKey(proj.goalId),
           proj.title, proj.progress || 0
         ]);
       }
@@ -267,9 +274,9 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
             updated_at = CURRENT_TIMESTAMP
         `, [
           t.id, userId,
-          t.goalId === 'none' ? null : t.goalId,
-          t.projectId === 'none' ? null : t.projectId,
-          t.parentTaskId || null,
+          cleanForeignKey(t.goalId),
+          cleanForeignKey(t.projectId),
+          cleanForeignKey(t.parentTaskId),
           t.title, t.status || 'todo',
           t.date ? new Date(t.date) : null,
           t.estimatedDuration || '',
@@ -280,7 +287,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
           t.documentIds || [],
           t.executionType || 'standard',
           t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}',
-          t.objectiveId === 'none' ? null : t.objectiveId
+          cleanForeignKey(t.objectiveId)
         ]);
       }
 
@@ -435,7 +442,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
           updated_at = CURRENT_TIMESTAMP
         RETURNING *
       `, [
-        id, userId, proj.goalId === 'none' ? null : proj.goalId,
+        id, userId, cleanForeignKey(proj.goalId),
         proj.title, proj.progress || 0
       ]);
 
@@ -495,9 +502,9 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
         RETURNING *
       `, [
         id, userId,
-        t.goalId === 'none' ? null : t.goalId,
-        t.projectId === 'none' ? null : t.projectId,
-        t.parentTaskId || null,
+        cleanForeignKey(t.goalId),
+        cleanForeignKey(t.projectId),
+        cleanForeignKey(t.parentTaskId),
         t.title, t.status || 'todo',
         t.date ? new Date(t.date) : null,
         t.estimatedDuration || '',
@@ -508,7 +515,7 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
         t.documentIds || [],
         t.executionType || 'standard',
         t.energyWorkExecution ? JSON.stringify(t.energyWorkExecution) : '{}',
-        t.objectiveId === 'none' ? null : t.objectiveId
+        cleanForeignKey(t.objectiveId)
       ]);
 
       return { success: true, task: mapTaskDbToFrontend(res.rows[0]) };

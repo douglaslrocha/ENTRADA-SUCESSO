@@ -1,0 +1,249 @@
+@import "tailwindcss";
+
+:root {
+  --neutral-black: #000000;
+  --neutral-black-rgb: 0, 0, 0;
+  --neutral-white: #FFFFFF;
+  --neutral-white-rgb: 255, 255, 255;
+  --surface-glass: rgba(27, 27, 29, 0.4);
+  --border-opacity: 0.08;
+  --folder-bg-research: #1A1C2E;
+  --folder-bg-strategy: #1A241D;
+  --folder-bg-workflows: #24211A;
+  --folder-bg-pages: #241A20;
+  --folder-accent-research: #3F51B5;
+  --folder-accent-strategy: #4CAF50;
+  --folder-accent-workflows: #FFB300;
+  --folder-accent-pages: #E91E63;
+  --pocket-bg: #0e0e10;
+}
+
+.light {
+  --neutral-black: #F5F5F7;
+  --neutral-black-rgb: 245, 245, 247;
+  --neutral-white: #1D1D1F;
+  --neutral-white-rgb: 29, 29, 31;
+  --surface-glass: rgba(255, 255, 255, 0.6);
+  --border-opacity: 0.15;
+  --folder-bg-research: #E1F5FE;
+  --folder-bg-strategy: #E8F5E9;
+  --folder-bg-workflows: #F5F5DC;
+  --folder-bg-pages: #FCE4EC;
+  --folder-accent-research: #90CAF9;
+  --folder-accent-strategy: #A5D6A7;
+  --folder-accent-workflows: #FFE082;
+  --folder-accent-pages: #F48FB1;
+  --pocket-bg: #FFFFFF;
+}
+
+@theme {
+  --color-primary: #c8bfff;
+  --color-primary-brand: #7C68EE;
+  --color-surface: #131315;
+  --color-background: var(--neutral-black);
+  --color-on-surface: var(--neutral-white);
+  --color-secondary: #aec6ff;
+  --color-surface-variant: #353437;
+  --color-primary-container: #907eff;
+  --color-outline-variant: #484554;
+
+  /* Neutral & Pastel Palette - Now Dynamic */
+  --color-neutral-black: var(--neutral-black);
+  --color-neutral-white: var(--neutral-white);
+  --color-pastel-blue: #B3E5FC;
+  --color-pastel-green: #C8E6C9;
+  --color-pastel-purple: #E1BEE7;
+  --color-pastel-pink: #F8BBD0;
+  --color-pastel-yellow: #FFF9C4;
+  --color-pastel-indigo: #7C68EE; /* Adjusted for better contrast in both modes */
+
+  --font-headline: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-serif-elegant: "Playfair Display", serif;
+
+  --radius-DEFAULT: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2.5rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--neutral-black);
+    color: var(--neutral-white);
+    font-family: var(--font-body);
+    scroll-behavior: smooth;
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
+
+  /* Prevent auto-zoom on iOS and remove default browser focus outlines */
+  input, 
+  textarea, 
+  select {
+    font-size: 16px !important;
+  }
+
+  *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--surface-glass);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    transition: background 0.5s ease;
+  }
+  .text-gradient {
+    background: linear-gradient(to right, #c8bfff, #907eff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .bg-primary-gradient {
+    background: linear-gradient(135deg, #c8bfff 0%, #907eff 100%);
+  }
+  .task-glow:hover {
+    box-shadow: 0 0 30px rgba(144, 126, 255, 0.15);
+  }
+  .timeline-line {
+    background: linear-gradient(to bottom, #907eff 0%, rgba(144, 126, 255, 0.1) 100%);
+  }
+  .hero-overlay {
+    background: linear-gradient(to bottom, rgba(var(--neutral-black-rgb, 0, 0, 0), 0.2) 0%, rgba(var(--neutral-black-rgb, 0, 0, 0), 0.4) 60%, var(--neutral-black) 100%);
+  }
+  .hero-blur-transition {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to bottom, transparent, var(--neutral-black) 90%, var(--neutral-black) 100%);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 15;
+  }
+
+  .workspace-bg-overlay {
+    background: 
+      linear-gradient(to right, var(--neutral-black) 0%, transparent 15%, transparent 85%, var(--neutral-black) 100%),
+      linear-gradient(to bottom, var(--neutral-black) 0%, transparent 15%, transparent 85%, var(--neutral-black) 100%);
+  }
+
+  .active-glow {
+    box-shadow: 0 0 40px rgba(197, 202, 233, 0.15);
+    border-color: rgba(197, 202, 233, 0.3);
+  }
+
+  .soft-shadow {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .card-border {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Wallet Folder Effect */
+  .wallet-container {
+    perspective: 1000px;
+  }
+  .wallet-folder {
+    position: relative;
+    border-radius: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1), inset 0 1px 1px rgba(255,255,255,0.1);
+    border: 1px solid rgba(var(--neutral-white-rgb), 0.05);
+    overflow: visible;
+  }
+  .dark .wallet-folder {
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.05);
+  }
+  .wallet-folder:hover {
+    transform: translateY(-8px) rotateX(2deg);
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.2);
+  }
+  .dark .wallet-folder:hover {
+    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.1);
+  }
+  .wallet-card-back {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 88%;
+    height: 100%;
+    background: var(--folder-accent);
+    border-radius: 1.25rem;
+    z-index: -2;
+    transition: all 0.4s ease;
+    opacity: 0.8;
+  }
+  .light .wallet-card-back {
+    opacity: 0.4;
+  }
+  .wallet-card-mid {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 94%;
+    height: 100%;
+    background: #FFFFFF;
+    border-radius: 1.25rem;
+    z-index: -1;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .dark .wallet-card-mid {
+    background: #e5e1e4;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .wallet-folder:hover .wallet-card-back { top: -20px; opacity: 1; }
+  .wallet-folder:hover .wallet-card-mid { top: -10px; }
+
+  .wallet-folder.expanded {
+    transform: none !important;
+    box-shadow: 0 30px 80px -15px rgba(0,0,0,0.1);
+    z-index: 50;
+  }
+  .dark .wallet-folder.expanded {
+    box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8);
+  }
+  .wallet-folder.expanded .wallet-card-back { top: -30px; opacity: 1; width: 92%; }
+  .wallet-folder.expanded .wallet-card-mid { top: -15px; width: 96%; }
+
+  .wallet-front-pocket {
+    background: var(--pocket-bg);
+    border-radius: 1.25rem 1.25rem 1.4rem 1.4rem;
+    margin-top: 60px;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(var(--neutral-white-rgb), 0.08);
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    position: relative;
+    z-index: 10;
+  }
+  .dark .wallet-front-pocket {
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+  }
+  .wallet-front-pocket::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copia arquivos do root e instala dependências
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --notsup
 
 # Copia o restante do código do frontend
 COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts eslint.config.js index.html ./

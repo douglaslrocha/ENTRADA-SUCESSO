@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copia o restante do código do frontend
-COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts eslint.config.js index.html tailwind.config.js postcss.config.js ./
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts eslint.config.js index.html ./
 COPY src/ ./src
 COPY public/ ./public
 

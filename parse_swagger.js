@@ -4,7 +4,10 @@ const baseUrl = 'http://187.127.3.42:8000';
 async function run() {
   try {
     const res = await fetch(`${baseUrl}/api-docs`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
     });
     if (!res.ok) {
       console.error('Error fetching docs:', res.status);

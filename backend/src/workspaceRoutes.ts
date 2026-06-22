@@ -637,7 +637,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
             updated_at = CURRENT_TIMESTAMP
         `, [
           ws.id, userId, ws.name,
-          ws.isPinned, ws.isHidden,
+          ws.isPinned ? 1 : 0, ws.isHidden ? 1 : 0,
           ws.color, ws.icon, ws.iconType, ws.imageUrl,
         ]);
       }
@@ -673,7 +673,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
             updated_at = CURRENT_TIMESTAMP
         `, [
           f.id, userId, f.workspaceId,
-          f.name, f.isPinned,
+          f.name, f.isPinned ? 1 : 0,
           f.color, f.icon, f.iconType, f.imageUrl,
         ]);
       }
@@ -710,7 +710,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
         `, [
           p.id, userId, p.folderId,
           p.title, p.content || '',
-          p.isPinned || false,
+          p.isPinned ? 1 : 0,
           p.coverImage ?? null,
           p.coverPosition ?? 50.00,
           p.icon ?? null,
@@ -799,7 +799,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
         RETURNING *
       `, [
         id, userId, body.name,
-        body.isPinned, body.isHidden,
+        body.isPinned ? 1 : 0, body.isHidden ? 1 : 0,
         body.color, body.icon, body.iconType, body.imageUrl,
       ]);
 
@@ -914,7 +914,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
         RETURNING *
       `, [
         id, userId, body.workspaceId,
-        body.name, body.isPinned,
+        body.name, body.isPinned ? 1 : 0,
         body.color, body.icon, body.iconType, body.imageUrl,
       ]);
 
@@ -1030,7 +1030,7 @@ export async function workspaceRoutes(fastify: FastifyInstance) {
       `, [
         id, userId, body.folderId,
         body.title, body.content,
-        body.isPinned,
+        body.isPinned ? 1 : 0,
         body.coverImage,
         body.coverPosition,
         body.icon,

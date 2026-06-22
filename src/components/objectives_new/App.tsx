@@ -83,19 +83,107 @@ export default function App({
   const syncData = async () => {
     try {
       const tree = await objectivesService.getObjectivesTree();
-      setObjectives(tree.objectives || []);
-      setGoals(tree.goals || []);
-      setAllTasks(tree.tasks || []);
+      const loadedObjectives = tree.objectives || [];
+      const loadedGoals = tree.goals || [];
+      const loadedTasks = tree.tasks || [];
+
+      setObjectives(loadedObjectives);
+      setGoals(loadedGoals);
+      setAllTasks(loadedTasks);
+
+      // Sincronizar as metas e tarefas para localStorage para manter consistência no F5/offline
+      loadedObjectives.forEach((obj: any) => {
+        if (!obj.title) return;
+        const objGoals = loadedGoals.filter((g: any) => g.objectiveId === obj.id);
+        const objGoalIds = new Set(objGoals.map((g: any) => g.id));
+        const objTasks = loadedTasks.filter((t: any) => {
+          if (t.objectiveId === obj.id) return true;
+          if (t.objectiveTitle && t.objectiveTitle.toLowerCase() === obj.title.toLowerCase()) return true;
+          if (t.goalId && t.goalId !== 'none') return objGoalIds.has(t.goalId);
+          return false;
+        });
+
+        // Mapear para o formato do modal frontend (MetaData)
+        const mappedMetas = objGoals.map((g: any) => ({
+          id: g.id,
+          intention: g.intention || g.title || '',
+          description: g.description || '',
+          meaning: g.meaning || '',
+          formaMedicao: g.formaMedicao || '',
+          objetivoDesejado: g.objetivoDesejado || '',
+          pontoAtual: g.pontoAtual || '0',
+          ritmoEsperado: g.ritmoEsperado || 'Constante',
+          evolucaoEsperada: g.expectedEvolution || g.evolucaoEsperada || '',
+          evolutionaryContext: g.evolutionaryContext || '',
+          interpretacao: g.interpretacao || 'linear',
+          tipoMetrica: g.tipoMetrica || 'unidade',
+          contexto: g.contexto || 'geral',
+          deadline: g.deadline ? new Date(typeof g.deadline === 'number' ? g.deadline : g.deadline).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          consequence: g.consequence || '',
+          risks: g.risks || '',
+          impact: g.impactLevel || 'medium',
+          strategy: g.strategy || '',
+          actions: g.actions || [],
+          rhythm: g.rhythm || 'daily',
+          color: g.color || '#c3b1e1',
+          createdAt: g.createdAt ? new Date(g.createdAt).toISOString() : new Date().toISOString()
+        }));
+
+        // Mapear para o formato do modal frontend (TaskData)
+        const mappedTasks = objTasks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || '',
+          imageUrl: t.visualAnchorUrl || t.imageUrl || '',
+          metaId: t.goalId,
+          subtasks: (t.subtasks || []).map((s: any) => typeof s === 'string' ? { id: crypto.randomUUID(), text: s, completed: false } : s),
+          checklist: t.checklist || [],
+          estimatedDuration: t.estimatedDuration || '',
+          date: t.scheduledDate ? new Date(t.scheduledDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          time: t.time || '',
+          recurrence: t.isRecurring ? 'daily' : 'none',
+          priority: t.priority || 'medium',
+          impact: t.strategicImpact || 'medium',
+          executionStrategy: t.executionStrategy || '',
+          linkedPages: t.linkedDocumentIds || [],
+          metricType: t.executionType || 'entrega',
+          evolucaoEsperada: t.evolucaoEsperada || '',
+          pontoAtual: t.pontoAtual || '0',
+          objetivoDesejado: t.objetivoDesejado || '',
+          contexto: t.contexto || 'geral',
+          formaMedicao: t.formaMedicao || '',
+          ritmoEsperado: t.ritmoEsperado || 'Constante',
+          interpretacao: t.interpretacao || 'linear',
+          createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
+          parentTaskId: t.parentTaskId,
+          visualAnchorUrl: t.visualAnchorUrl,
+          complexity: t.complexity,
+          executionType: t.executionType || 'standard',
+          multimodalConfig: t.multimodalConfig || {},
+          actualDuration: t.actualDuration || 0,
+          status: t.status === 'done' || t.status === 'completed' ? 'completed' : (t.status === 'doing' || t.status === 'in-progress' ? 'in-progress' : 'todo')
+        }));
+
+        storage.set(`metas_${obj.title}`, mappedMetas);
+        storage.set(`tasks_${obj.title}`, mappedTasks);
+      });
 
       if (initialObjectiveId) {
-        const found = (tree.objectives || []).find((o: any) => o.id === initialObjectiveId);
+        const found = loadedObjectives.find((o: any) => o.id === initialObjectiveId);
         if (found) {
-          setActiveObjective(found);
+          setActiveObjective({
+            ...found,
+            metas: storage.get(`metas_${found.title}`, [])
+          });
         }
       } else if (initialView === 'manager') {
         setActiveObjective(null);
-      } else if (tree.objectives && tree.objectives.length > 0) {
-        setActiveObjective(tree.objectives[0]);
+      } else if (loadedObjectives.length > 0) {
+        const first = loadedObjectives[0];
+        setActiveObjective({
+          ...first,
+          metas: storage.get(`metas_${first.title}`, [])
+        });
       } else {
         setActiveObjective(null);
       }

@@ -172,8 +172,15 @@ export default function ObjectiveManager({ onBack, onSave, initialData }: { onBa
     return defaults;
   });
 
-  // Sincroniza e reseta o formulário de objetivos quando o nome ou initialData muda
+  // Sincroniza e reseta o formulário de objetivos apenas quando o ID ou o dado inicial mudar de fato
+  const initialIdRef = useRef(initialData?.id);
   useEffect(() => {
+    if (initialData && initialData.id === initialIdRef.current) {
+      // Já está em sincronia ou editando o mesmo item, não resetar
+      return;
+    }
+    initialIdRef.current = initialData?.id;
+
     const defaults: ObjectiveData = {
       title: '',
       burningDesire: '',

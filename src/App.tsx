@@ -36,14 +36,10 @@ import { haptics } from './services/HapticService';
 import { useOrganismSync } from './hooks/useOrganismSync';
 import { PerfProfiler } from './utils/perfProfiler';
 
-import { fakeDB } from './core/fakeDB';
 import { useAuth } from './lib/AuthContext';
 import WelcomePage from './components/auth/WelcomePage';
 import LoginPage from './components/auth/LoginPage';
 import ProfilePage from './components/auth/ProfilePage';
-
-// Seed initial data
-fakeDB.seed();
 
 export default function App() {
   const navigate = useNavigate();

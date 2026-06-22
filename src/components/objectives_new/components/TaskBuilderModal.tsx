@@ -54,6 +54,9 @@ export interface TaskData {
   ritmoEsperado?: string;
   interpretacao?: 'linear' | 'acumulativa' | 'progressiva' | 'streak' | 'subjetiva' | 'continua' | 'intensidade';
   createdAt: string;
+  parentTaskId?: string | null;
+  visualAnchorUrl?: string;
+  complexity?: 'low' | 'medium' | 'high';
   // Conscientiology / Energy Work
   energyWorkExecution?: {
     intensity: number; // 1-10
@@ -92,7 +95,7 @@ export interface TaskData {
   };
   // Execution Data
   actualDuration?: number; // in seconds
-  status?: 'pending' | 'in-progress' | 'paused' | 'completed' | 'blocked';
+  status?: 'todo' | 'pending' | 'in-progress' | 'paused' | 'completed' | 'blocked';
   executionNotes?: string;
   realEffort?: 'lower' | 'equal' | 'higher';
   blockers?: string;
@@ -180,9 +183,7 @@ export default function TaskBuilderModal({
     impact: false,
     execution: false,
     linking: false,
-    metrics: false,
-    multimodal: false,
-    preview: false
+    multimodal: false
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -230,9 +231,7 @@ export default function TaskBuilderModal({
         time: false,
         impact: false,
         strategy: false,
-        linking: false,
-        metrics: false,
-        preview: false
+        linking: false
       });
       setErrors({});
 
@@ -1298,205 +1297,6 @@ export default function TaskBuilderModal({
                       <p className="text-[8px] md:text-[10px] text-neutral-white/30 mt-1">Conectar ao projeto</p>
                     </div>
                   </button>
-                </div>
-              </Section>
-
-              {/* Section 7: Evolução e Performance */}
-              <Section 
-                id="metrics" 
-                title="KPI Engine: Evolução Humana" 
-                icon={<BarChart3 size={18} />} 
-                isExpanded={expandedSections.metrics} 
-                onToggle={() => toggleSection('metrics')}
-                color="text-pastel-indigo"
-              >
-                <div className="py-6 space-y-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-neutral-white/80">Contexto da Atividade</label>
-                        <span className="text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest">O que é isso?</span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {[
-                          { id: 'geral', label: 'Geral', icon: <Activity size={14} /> },
-                          { id: 'leitura', label: 'Leitura', icon: <BookOpen size={14} /> },
-                          { id: 'prática', label: 'Prática', icon: <Swords size={14} /> },
-                          { id: 'financeiro', label: 'Financeiro', icon: <TrendingUp size={14} /> },
-                          { id: 'foco', label: 'Foco/Ment.', icon: <Brain size={14} /> },
-                          { id: 'audio', label: 'Áudio', icon: <Headphones size={14} /> }
-                        ].map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => setFormData({...formData, contexto: c.id as any})}
-                            className={`py-3 rounded-xl border flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-widest transition-all ${formData.contexto === c.id ? 'bg-pastel-indigo/20 border-pastel-indigo/30 text-pastel-indigo shadow-[0_0_20px_rgba(165,180,252,0.1)]' : 'bg-neutral-white/2 border-neutral-white/5 text-neutral-white/20 hover:border-neutral-white/10'}`}
-                          >
-                            {c.icon}
-                            {c.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-neutral-white/80">Lógica de Interpretação</label>
-                        <span className="text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest">O "Como"</span>
-                      </div>
-                      <select 
-                        value={formData.interpretacao || 'linear'}
-                        onChange={(e) => setFormData({ ...formData, interpretacao: e.target.value as any })}
-                        className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-2xl p-5 md:p-6 text-xs md:text-sm text-neutral-white focus:border-pastel-indigo/50 focus:ring-0 transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="linear">Linear (Progressão direta)</option>
-                        <option value="acumulativa">Acumulativa (Soma de esforços)</option>
-                        <option value="progressiva">Progressiva (Dificuldade gradual)</option>
-                        <option value="streak">Streak (Consistência ininterrupta)</option>
-                        <option value="subjetiva">Subjetiva (Nível de consciência/percepção)</option>
-                        <option value="continua">Contínua (Fluxo sem interrupção)</option>
-                        <option value="intensidade">Intensidade (Aumento de carga ou foco)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-4 md:col-span-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-neutral-white/80">Forma de Medição</label>
-                        <span className="text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest">A ferramenta</span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {[
-                          { id: 'tempo', label: 'Ritmo/Tempo', icon: <Clock size={14} /> },
-                          { id: 'entrega', label: 'Entrega Fixa', icon: <CheckCircle2 size={14} /> },
-                          { id: 'frequencia', label: 'Frequência', icon: <Activity size={14} /> },
-                          { id: 'leitura', label: 'Absorção', icon: <BookOpen size={14} /> },
-                          { id: 'foco', label: 'Densidade', icon: <Brain size={14} /> },
-                          { id: 'consistencia', label: 'Inércia', icon: <TrendingUp size={14} /> }
-                        ].map((m) => (
-                          <button
-                            key={m.id}
-                            onClick={() => setFormData({...formData, metricType: m.id as any})}
-                            className={`py-3 rounded-xl border flex items-center justify-center gap-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest transition-all ${formData.metricType === m.id ? 'bg-pastel-green/20 border-pastel-green/30 text-pastel-green' : 'bg-neutral-white/2 border-neutral-white/5 text-neutral-white/20 hover:border-neutral-white/10'}`}
-                          >
-                            {m.icon}
-                            {m.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 pt-8 border-t border-neutral-white/5">
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                           <label className="text-[10px] font-bold text-neutral-white/30 uppercase tracking-widest">Ritmo & Evolução</label>
-                           <p className="text-[8px] font-bold text-pastel-indigo/40 italic">O impacto futuro</p>
-                        </div>
-                        <input 
-                          type="text"
-                          value={formData.evolucaoEsperada}
-                          onChange={(e) => setFormData({...formData, evolucaoEsperada: e.target.value})}
-                          placeholder={
-                            formData.interpretacao === 'subjetiva' ? "Ex: Transição de 'Confuso' para 'Lúcido'" :
-                            formData.interpretacao === 'intensidade' ? "Ex: Aumento da carga cognitiva suportada" :
-                            formData.contexto === 'leitura' ? "Ex: Expansão de vocabulário e repertório técnico" :
-                            formData.contexto === 'foco' ? "Ex: Aumento da capacidade de estado de fluxo" :
-                            "Qual o real impacto dessa atividade?"
-                          }
-                          className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-xl md:rounded-2xl px-5 md:px-6 py-3 md:py-4 text-xs md:text-sm text-neutral-white focus:border-pastel-indigo/50 focus:ring-0 transition-shadow hover:shadow-[0_0_15px_rgba(255,255,255,0.02)]"
-                        />
-                        <p className="text-[9px] text-neutral-white/20 italic">Ensina o sistema como interpretar o sucesso desta tarefa.</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-neutral-white/30 uppercase tracking-widest">Jornada (Início → Destino)</label>
-                        <span className="text-[14px] font-bold text-pastel-green opacity-50">→</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <input 
-                            type="text"
-                            value={formData.pontoAtual}
-                            onChange={(e) => setFormData({...formData, pontoAtual: e.target.value})}
-                            placeholder={formData.interpretacao === 'subjetiva' ? "De: 'Confuso'" : "De (0)"}
-                            className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-xl px-4 py-3 text-xs text-neutral-white focus:border-pastel-indigo/50 focus:ring-0"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <input 
-                            type="text"
-                            value={formData.objetivoDesejado}
-                            onChange={(e) => setFormData({...formData, objetivoDesejado: e.target.value})}
-                            placeholder={
-                              formData.interpretacao === 'subjetiva' ? "Para: 'Lúcido'" :
-                              formData.contexto === 'leitura' ? "Páginas" :
-                              formData.metricType === 'tempo' ? "Minutos" :
-                              "Para (Alvo)"
-                            }
-                            className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-xl px-4 py-3 text-xs text-neutral-white focus:border-pastel-green/50 focus:ring-0"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 px-2">
-                        <Info size={10} className="text-pastel-indigo/40" />
-                        <p className="text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest">Dica: Use números para alimentar gráficos ou Palavras para estados internos.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Section>
-
-              {/* Section 8: Preview */}
-              <Section 
-                id="preview" 
-                title="Pré-visualização" 
-                icon={<Eye size={18} />} 
-                isExpanded={expandedSections.preview} 
-                onToggle={() => toggleSection('preview')}
-                color="text-neutral-white"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 py-6">
-                  <div className="space-y-3 md:space-y-4">
-                    <p className="text-[10px] font-bold text-neutral-white/20 uppercase tracking-widest text-center">Na Timeline</p>
-                    <div className="p-5 md:p-6 bg-neutral-white/5 border border-neutral-white/10 rounded-2xl md:rounded-3xl relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-pastel-indigo" />
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[8px] font-bold text-neutral-white/30 uppercase tracking-widest">14:30 - 16:00</span>
-                        <Flag size={10} className={PRIORITY_LEVELS.find(p => p.id === formData.priority)?.color} />
-                      </div>
-                      <p className="text-[10px] md:text-xs font-bold text-neutral-white truncate">{formData.title || 'Título da Tarefa'}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="w-full h-1 bg-neutral-white/10 rounded-full overflow-hidden">
-                          <div className="bg-pastel-indigo h-full w-0" />
-                        </div>
-                        <span className="text-[8px] font-bold text-neutral-white/20">0%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-3 md:space-y-4">
-                    <p className="text-[10px] font-bold text-neutral-white/20 uppercase tracking-widest text-center">Dentro da Meta</p>
-                    <div className="p-5 md:p-6 bg-neutral-white/5 border border-neutral-white/10 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4">
-                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-pastel-indigo/20 flex items-center justify-center text-pastel-indigo">
-                        <CheckCircle2 size={16} className="md:w-[20px] md:h-[20px]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] md:text-xs font-bold text-neutral-white truncate">{formData.title || 'Tarefa'}</p>
-                        <p className="text-[8px] text-neutral-white/30 uppercase tracking-widest mt-1">Impacto {IMPACT_LEVELS.find(i => i.id === formData.impact)?.label}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-3 md:space-y-4">
-                    <p className="text-[10px] font-bold text-neutral-white/20 uppercase tracking-widest text-center">Foco do Agora</p>
-                    <div className="p-5 md:p-6 bg-pastel-indigo/10 border border-pastel-indigo/20 rounded-2xl md:rounded-3xl flex flex-col items-center text-center">
-                      <Zap size={20} className="text-pastel-indigo mb-2 md:w-[24px] md:h-[24px]" />
-                      <p className="text-xs md:text-sm font-bold text-neutral-white line-clamp-2">{formData.title || 'Foco Atual'}</p>
-                      <div className="mt-2 md:mt-3 px-3 py-1 bg-pastel-indigo/20 rounded-full text-[8px] font-bold text-pastel-indigo uppercase tracking-widest">
-                        Executar Agora
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </Section>
 

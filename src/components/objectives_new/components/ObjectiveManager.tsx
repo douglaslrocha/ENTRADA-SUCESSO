@@ -587,30 +587,6 @@ export default function ObjectiveManager({ onBack, onSave, initialData }: { onBa
             <p className="text-[10px] font-bold text-neutral-white/30 uppercase tracking-[0.2em]">Interpretação e Contexto Evolutivo</p>
           </div>
         </div>
-        <button 
-          onClick={() => {
-            const newKPI: KPI = {
-              id: Math.random().toString(36).substr(2, 9),
-              name: '',
-              tipoMetrica: 'frequencia',
-              contexto: 'geral',
-              interpretacao: 'streak',
-              formaMedicao: 'Automática (IA)',
-              pontoAtual: 'Início',
-              objetivoDesejado: 'Consistência',
-              ritmoEsperado: 'Natural',
-              evolucaoEsperada: '',
-              frequencia: 'daily',
-              source: 'manual',
-              visualization: 'area'
-            };
-            handleUpdate({ kpis: [...data.kpis, newKPI] });
-          }}
-          className="flex items-center gap-2 px-6 py-3 bg-pastel-indigo text-neutral-black rounded-2xl font-bold text-xs hover:scale-105 transition-all shadow-xl shadow-pastel-indigo/20"
-        >
-          <Plus size={16} />
-          SINTONIZAR DIMENSÃO
-        </button>
       </div>
 
       <div className="bg-pastel-indigo/5 border border-pastel-indigo/10 rounded-[2.5rem] p-6 mb-8 flex flex-col md:flex-row items-start gap-6">
@@ -637,161 +613,6 @@ export default function ObjectiveManager({ onBack, onSave, initialData }: { onBa
         </div>
       </div>
 
-      <div className="space-y-8">
-        <AnimatePresence mode="popLayout">
-          {data.kpis.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-24 border-2 border-dashed border-neutral-white/5 rounded-[3rem] flex flex-col items-center justify-center text-neutral-white/20 gap-6 bg-neutral-white/[0.01]"
-            >
-              <div className="p-6 bg-neutral-white/5 rounded-full">
-                <Target size={40} strokeWidth={1} />
-              </div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em]">Nenhuma dimensão de progresso sintonizada.</p>
-            </motion.div>
-          ) : (
-            data.kpis.map((kpi) => (
-              <motion.div 
-                key={kpi.id}
-                layout
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-neutral-white/5 border border-neutral-white/10 rounded-[3rem] p-8 md:p-10 space-y-10 relative group hover:bg-neutral-white/[0.07] transition-all duration-500"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="flex-1 space-y-2">
-                    <label className="text-[10px] font-bold text-pastel-indigo uppercase tracking-[0.2em] ml-1 opacity-60">Dimensão da Prática</label>
-                    <input 
-                      type="text" 
-                      value={kpi.name}
-                      onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, name: e.target.value } : k) })}
-                      placeholder="Ex: Profundidade do Estudo ou Qualidade do Foco"
-                      className="w-full bg-transparent border-none text-2xl md:text-3xl font-headline font-bold text-neutral-white placeholder:text-neutral-white/10 focus:outline-none"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => handleUpdate({ kpis: data.kpis.filter(k => k.id !== kpi.id) })}
-                    className="w-12 h-12 rounded-full border border-neutral-white/10 flex items-center justify-center text-neutral-white/20 hover:bg-pastel-pink/20 hover:text-pastel-pink transition-all"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <label className="text-[10px] font-bold text-neutral-white/40 uppercase tracking-widest">Esfera de Influência</label>
-                    </div>
-                    <select 
-                      value={kpi.contexto}
-                      onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, contexto: e.target.value as any } : k) })}
-                      className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-neutral-white/80 focus:outline-none focus:border-pastel-indigo appearance-none transition-all"
-                    >
-                      <option value="geral">Geral / Multidimensão</option>
-                      <option value="leitura">Cognitivo / Estudo</option>
-                      <option value="prática">Ação / Técnica</option>
-                      <option value="foco">Consciência / Presença</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <label className="text-[10px] font-bold text-neutral-white/40 uppercase tracking-widest">Arquétipo Evolutivo</label>
-                    </div>
-                    <select 
-                      value={kpi.interpretacao}
-                      onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, interpretacao: e.target.value as any } : k) })}
-                      className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-neutral-white/80 focus:outline-none focus:border-pastel-indigo appearance-none transition-all"
-                    >
-                      <option value="streak">Consistência (Caminho da Repetição)</option>
-                      <option value="subjetiva">Nível de Percepção (Caminho Interno)</option>
-                      <option value="acumulativa">Acúmulo de Valor (Caminho da Obra)</option>
-                      <option value="intensidade">Aprofundamento (Caminho da Maestria)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <label className="text-[10px] font-bold text-neutral-white/40 uppercase tracking-widest">Interpretação da IA</label>
-                    </div>
-                    <div className="w-full bg-pastel-green/5 border border-pastel-green/10 rounded-2xl px-5 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Sparkles size={14} className="text-pastel-green" />
-                        <span className="text-[10px] font-bold text-pastel-green uppercase tracking-widest">Automática</span>
-                      </div>
-                      <div className="px-2 py-0.5 bg-pastel-green/20 rounded-md text-[8px] font-bold text-pastel-green uppercase tracking-wider">Contextual</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6 pt-6 border-t border-neutral-white/5">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold text-neutral-white/60 uppercase tracking-widest flex items-center gap-2">
-                      <FileText size={14} className="text-pastel-indigo" />
-                      Instrução Contextual (Guia da Memória)
-                    </h4>
-                    <span className="text-[9px] font-medium text-neutral-white/20 italic">Ensine a IA a perceber seu progresso</span>
-                  </div>
-                  <textarea 
-                    value={kpi.evolucaoEsperada}
-                    onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, evolucaoEsperada: e.target.value } : k) })}
-                    placeholder="Como você descreveria o 'sentir' da evolução nesta dimensão? Ex: 'Perceba se estou saindo da prática com menos fadiga mental, indicando que a técnica está se tornando natural.'"
-                    className="w-full bg-neutral-white/5 border border-neutral-white/5 rounded-[2rem] p-6 text-sm text-neutral-white/80 focus:outline-none focus:border-pastel-indigo min-h-[100px] resize-none leading-relaxed transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-neutral-white/30 uppercase tracking-widest ml-1">Estados de Transição</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-neutral-white/[0.02] border border-neutral-white/5 rounded-2xl p-5 group-hover:bg-neutral-white/5 transition-all">
-                        <label className="block text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest mb-2">Ponto de Partida</label>
-                        <input 
-                          type="text" 
-                          value={kpi.pontoAtual}
-                          onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, pontoAtual: e.target.value } : k) })}
-                          className="bg-transparent border-none text-sm font-bold text-neutral-white focus:outline-none p-0 w-full"
-                          placeholder="Ex: Confusão"
-                        />
-                      </div>
-                      <div className="bg-neutral-white/[0.02] border border-neutral-white/5 rounded-2xl p-5 group-hover:bg-neutral-white/5 transition-all">
-                        <label className="block text-[8px] font-bold text-neutral-white/20 uppercase tracking-widest mb-2">Destino Desejado</label>
-                        <input 
-                          type="text" 
-                          value={kpi.objetivoDesejado}
-                          onChange={(e) => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, objetivoDesejado: e.target.value } : k) })}
-                          className="bg-transparent border-none text-sm font-bold text-pastel-green focus:outline-none p-0 w-full"
-                          placeholder="Ex: Maestria"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-neutral-white/30 uppercase tracking-widest ml-1">Frequência da Observação</h4>
-                    <div className="flex gap-2">
-                      {['daily', 'weekly', 'monthly'].map((f) => (
-                        <button
-                          key={f}
-                          onClick={() => handleUpdate({ kpis: data.kpis.map(k => k.id === kpi.id ? { ...k, frequencia: f as any } : k) })}
-                          className={`flex-1 py-4 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all ${
-                            kpi.frequencia === f 
-                              ? 'bg-pastel-indigo/20 border-pastel-indigo/40 text-pastel-indigo' 
-                              : 'bg-neutral-white/5 border-neutral-white/5 text-neutral-white/20 hover:bg-neutral-white/10'
-                          }`}
-                        >
-                          {f === 'daily' ? 'Diária' : f === 'weekly' ? 'Semanal' : 'Mensal'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </AnimatePresence>
-      </div>
     </motion.div>
   );
 
@@ -827,99 +648,76 @@ export default function ObjectiveManager({ onBack, onSave, initialData }: { onBa
         </div>
 
         <div className="space-y-4">
-          {data.risks.map((risk) => (
-            <div key={risk.id} className="bg-neutral-white/5 border border-neutral-white/10 rounded-2xl p-5 md:p-6 space-y-6">
-              <div className="flex flex-col lg:flex-row gap-6">
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Descrição do Risco</label>
-                  <input 
-                    type="text" 
-                    value={risk.description}
-                    onChange={(e) => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, description: e.target.value } : r) })}
-                    placeholder="Ex: Atraso na entrega..."
-                    className="w-full bg-transparent border-b border-neutral-white/10 py-2 text-sm font-bold text-neutral-white focus:outline-none focus:border-pastel-pink/50 transition-all"
+          {data.risks.length === 0 ? (
+            <p className="text-[10px] text-neutral-white/20 uppercase tracking-widest italic">Nenhum risco mapeado.</p>
+          ) : (
+            data.risks.map((risk) => (
+              <div key={risk.id} className="bg-neutral-white/5 border border-neutral-white/10 rounded-2xl p-5 md:p-6 space-y-6 relative group">
+                <button 
+                  onClick={() => handleUpdate({ risks: data.risks.filter(r => r.id !== risk.id) })}
+                  className="absolute top-4 right-4 text-neutral-white/20 hover:text-pastel-pink transition-colors"
+                >
+                  <X size={16} />
+                </button>
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Descrição do Risco</label>
+                    <input 
+                      type="text" 
+                      value={risk.description}
+                      onChange={(e) => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, description: e.target.value } : r) })}
+                      placeholder="Ex: Atraso na entrega..."
+                      className="w-full bg-transparent border-b border-neutral-white/10 py-2 text-sm font-bold text-neutral-white focus:outline-none focus:border-pastel-pink/50 transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Probabilidade</label>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(v => (
+                          <button 
+                            key={v}
+                            onClick={() => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, probability: v as any } : r) })}
+                            className={`w-7 h-7 md:w-8 md:h-8 rounded-lg text-[10px] font-bold transition-all ${
+                              risk.probability === v ? 'bg-pastel-pink text-neutral-black' : 'bg-neutral-white/10 text-neutral-white/30 hover:text-neutral-white/60'
+                            }`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Impacto</label>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map(v => (
+                          <button 
+                            key={v}
+                            onClick={() => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, impact: v as any } : r) })}
+                            className={`w-7 h-7 md:w-8 md:h-8 rounded-lg text-[10px] font-bold transition-all ${
+                              risk.impact === v ? 'bg-pastel-pink text-neutral-black' : 'bg-neutral-white/10 text-neutral-white/30 hover:text-neutral-white/60'
+                            }`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Plano de Mitigação</label>
+                  <textarea 
+                    value={risk.mitigation}
+                    onChange={(e) => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, mitigation: e.target.value } : r) })}
+                    placeholder="O que fazer se este risco se concretizar?"
+                    rows={2}
+                    className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-xl px-4 py-3 text-xs text-neutral-white/40 focus:outline-none focus:ring-1 focus:ring-pastel-pink/30 transition-all resize-none"
                   />
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Probabilidade</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(v => (
-                        <button 
-                          key={v}
-                          onClick={() => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, probability: v as any } : r) })}
-                          className={`w-7 h-7 md:w-8 md:h-8 rounded-lg text-[10px] font-bold transition-all ${
-                            risk.probability === v ? 'bg-pastel-pink text-neutral-black' : 'bg-neutral-white/10 text-neutral-white/30 hover:text-neutral-white/60'
-                          }`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Impacto</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(v => (
-                        <button 
-                          key={v}
-                          onClick={() => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, impact: v as any } : r) })}
-                          className={`w-7 h-7 md:w-8 md:h-8 rounded-lg text-[10px] font-bold transition-all ${
-                            risk.impact === v ? 'bg-pastel-pink text-neutral-black' : 'bg-neutral-white/10 text-neutral-white/30 hover:text-neutral-white/60'
-                          }`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-neutral-white/50 uppercase tracking-widest mb-2">Plano de Mitigação</label>
-                <textarea 
-                  value={risk.mitigation}
-                  onChange={(e) => handleUpdate({ risks: data.risks.map(r => r.id === risk.id ? { ...r, mitigation: e.target.value } : r) })}
-                  placeholder="O que fazer se este risco se concretizar?"
-                  rows={2}
-                  className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-xl px-4 py-3 text-xs text-neutral-white/40 focus:outline-none focus:ring-1 focus:ring-pastel-pink/30 transition-all resize-none"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <div className="flex items-center gap-3 text-pastel-blue">
-          <GitBranch size={20} />
-          <h3 className="text-sm font-bold uppercase tracking-widest">Objetivos Relacionados & Dependências</h3>
-        </div>
-        <div className="bg-neutral-white/5 border border-neutral-white/10 rounded-3xl p-8">
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
-              <LinkIcon size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-white/20" />
-              <input 
-                type="text" 
-                placeholder="Buscar objetivos existentes para vincular..."
-                className="w-full bg-neutral-black border border-neutral-white/10 rounded-xl pl-11 pr-4 py-3 text-xs text-neutral-white/40 focus:outline-none focus:ring-2 focus:ring-pastel-blue/30"
-              />
-            </div>
-            <button className="px-6 py-3 bg-neutral-white/10 hover:bg-neutral-white/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">Vincular</button>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {data.relatedObjectives.length === 0 ? (
-              <p className="text-[10px] text-neutral-white/20 uppercase tracking-widest italic">Nenhuma dependência vinculada.</p>
-            ) : (
-              data.relatedObjectives.map(obj => (
-                <div key={obj.id} className="flex items-center gap-2 px-4 py-2 bg-pastel-blue/10 border border-pastel-blue/20 rounded-full text-[10px] font-bold text-pastel-blue">
-                  <ArrowUpRight size={12} />
-                  {obj.title}
-                  <button className="hover:text-neutral-white"><X size={10} /></button>
-                </div>
-              ))
-            )}
-          </div>
+            ))
+          )}
         </div>
       </section>
     </motion.div>

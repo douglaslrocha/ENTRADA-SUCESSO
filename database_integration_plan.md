@@ -1,93 +1,175 @@
-# Plano Estratégico de Integração e Modelagem de Dados
+# Plano de Banco de Dados e Fluxo: Objetivos, Metas e Tarefas
 
-Este plano mapeia a arquitetura de dados atual do sistema, identificando o que está integrado ao banco de dados Supabase (PostgreSQL) e o que está funcionando temporariamente em memória (mock de dados), fornecendo um cronograma macro e detalhado por página para estabilização total do ecossistema.
+Este documento organiza toda a hierarquia, as regras de negócio, os fluxos do frontend e as estruturas relacionais (tabelas e campos do Supabase PostgreSQL) para o módulo unificado de **Objetivos, Metas e Tarefas**, excluindo as seções obsoletas e consolidando a nova estrutura de execução.
 
 ---
 
-## ─── 1. ARQUITETURA ATUAL E DIAGNÓSTICO (ESTADO MACRO) ───
+## ─── 1. HIERARQUIA E FLUXO DO SISTEMA ───
 
+A arquitetura do banco segue uma relação hierárquica clara de um para muitos (1:N):
 ```mermaid
 graph TD
-    subgraph Frontend [React SPA Client]
-        P_Obj[Página Atacar Objetivos]
-        P_Dia[Página Diário]
-        P_Fin[Página Finanças]
-        P_Pre[Página Presenças - MOCK]
-        P_Mur[Página Mural - MOCK]
-    end
-
-    subgraph Backend [Fastify API Gateway]
-        API_Obj[API Objetivos / Tasks / Projects]
-        API_Dia[API Diário]
-        API_Fin[API Finanças]
-        API_Pre[Sem API de Presenças]
-        API_Mur[Sem API de Mural]
-    end
-
-    subgraph Database [Supabase PostgreSQL]
-        T_Obj[(Tabela objectives / tasks)]
-        T_Dia[(Tabela diary_entries)]
-        T_Fin[(Tabelas financial_*)]
-    end
-
-    P_Obj --> API_Obj --> T_Obj
-    P_Dia --> API_Dia --> T_Dia
-    P_Fin --> API_Fin --> T_Fin
-    P_Pre -.->|In-Memory Only| P_Pre
-    P_Mur -.->|In-Memory Only| P_Mur
+    O[Objetivo] -->|1 : N| M[Metas]
+    M -->|1 : N| T[Tarefas]
 ```
 
-### Resumo do Status de Integração:
-| Página / Módulo | Status do Banco | Localização do Serviço | Ação Necessária |
-| :--- | :--- | :--- | :--- |
-| **Atacar Objetivos** | 🟢 100% Integrado | `objectivesService.ts` | Pronto (Correções de FKs aplicadas). |
-| **Diário** | 🟢 100% Integrado | `diaryService.ts` | Pronto. |
-| **Finanças / Transações** | 🟢 100% Integrado | `financialService.ts` | Pronto. |
-| **Presenças** | 🔴 In-Memory Mock | `presenceService.ts` | Criar tabela, API de CRUD e ligar front. |
-| **Mural de Conquistas**| 🟡 Parcialmente em Lote | `muralService.ts` | Garantir gravação atômica por conquista. |
-| **Cortes / Workspace** | 🟢 100% Integrado | `workspaceService.ts` | Pronto. |
+### O que foi removido do fluxo e do app para simplificação:
+*   **Do Fluxo de Objetivos**: 
+    *   Botão e container "+ Sintonizar Dimensão".
+    *   Sessão de "Objetivos Relacionados & Dependências".
+*   **Do Fluxo de Metas**:
+    *   Seleção de "Contexto da Experiência".
+    *   Inserção manual de "Quais ações? (+ Adicionar Ações)".
+    *   Configuração do "Ritmo de Execução" das ações da meta.
+*   **Do Fluxo de Tarefas**:
+    *   Seção 7 (Engine de KPIs) e Seção 8 (Preview) do Modal de Criação de Tarefas.
 
 ---
 
-## ─── 2. PLANO DETALHADO PÁGINA POR PÁGINA ───
+## ─── 2. DETALHAMENTO DE INPUTS POR ETAPA ───
 
-### Fase 1: Correção do Módulo de Presenças
-*   **Ação de Dados**: Criar migration `006_create_presences_table.sql` com:
-    *   `id` (PK), `user_id` (FK), `name`, `photo`, `city`, `profession`, `dna`, `influencia`, `acionar_quando`, `peso` (0-10), e demais metadados complexos salvos como JSONB (ex: `connections`, `characteristics`).
-*   **Ação de Backend**: Adicionar `backend/src/presenceRoutes.ts` implementando o CRUD completo para presenças.
-*   **Ação de Frontend**: Alterar [presenceService.ts](file:///c:/Users/USUARIO/Desktop/ENTRADA%20SUCESSO/src/services/presenceService.ts) para realizar requisições HTTP reais.
+### A. Fluxo de Criação de Objetivo (5 Fases)
 
-### Fase 2: Auditoria de Outros Elementos em Memória (Mural / Configs)
-*   **Mapeamento de Pontas Soltas**: Verificar se as conquistas ou fotos adicionadas no Mural do Sucesso estão de fato sendo salvas nas colunas do banco ou se estão presas em `localStorage`.
-*   **Ajustes de Backup local**: Garantir que as configurações gerais e dados de perfil do usuário não se percam em novos computadores.
+*   **Fase 1**:
+    1. **O que você deseja exatamente (Nome)** -> `title` (input texto)
+    2. **Declaração de desejo ardente** -> `burning_desire` (textarea)
+    3. **A sensação de conquista** -> `feeling_of_achievement` (textarea)
+    4. **Prioridade** -> `priority` (Múltipla escolha: Baixa, Média, Alta, Desejo Ardente)
+    5. **Status da manifestação** -> `manifestation_status` (Múltipla escolha: Concepção, Em manifestação, Em pausa, Materializado, Arquivado)
+*   **Fase 2**:
+    1. **Sacrifício** -> `sacrifice` (textarea)
+    2. **Plano de ação** -> `action_plan` (textarea)
+    3. **Data limite** -> `start_date` vs `deadline` (campos de data/time)
+    4. **Recorrência mental** -> `mental_recurrence` (booleano/botão de ativar)
+*   **Fase 3**:
+    1. **Imagens de manifestação** -> `manifestation_images` (Upload da galeria/links de fotos)
+    2. **Vídeos Motivacionais** -> `motivational_videos` (Upload/links)
+*   **Fase 4**:
+    1. **Contexto geral de evolução (Propósito humano)** -> `evolutionary_context` (textarea)
+*   **Fase 5**:
+    1. **Matriz de riscos** -> `risks` (Lista com descrição do risco, probabilidade 1-5, impacto 1-5, plano de mitigação)
 
 ---
 
-## ─── 3. ARQUITETURA PROPOSTA: VISUALIZADOR DE DADOS (CRM/MAPA) ───
+### B. Fluxo de Criação de Meta
+1. **Intenção (Nome da Meta)** -> `intention` (input) + descrição completa -> `description` (textarea)
+2. **Significado** -> `meaning` (textarea)
+3. **Evolução esperada** -> `expected_evolution` (textarea grande)
+4. **Tempo** -> `deadline` (quando precisa acontecer)
+5. **Consequência e Risco**:
+    *   Se não for executado, o que acontece? -> `consequence` (textarea)
+    *   Quais riscos podem impedir? -> `risks` (textarea)
+    *   Impacto de não cumprimento -> `impact_level` (Múltipla escolha: Baixo, Médio, Alto, Crítico)
+6. **Estratégia** -> `strategy` (Como isso vai acontecer? - textarea grande)
+7. **Identidade** -> `color` (Escolha entre 5 cores pré-definidas)
 
-Para atender ao seu desejo de ter uma tela interativa estilo um **CRM de Banco de Dados** dentro do próprio sistema, propomos construir a página **`DatabaseMapPage`** (ou Central de Dados):
+---
 
-### Interface de Visualização (CRM de Dados):
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  CENTRAL DE COMANDO > CRM DE BANCO DE DADOS                            │
-├────────────────────────────────────────────────────────────────────────┤
-│ Selecione a Tela: [ Página Presenças ▼ ]                               │
-│                                                                        │
-│ TABELAS DETECTADAS:                                                   │
-│ ┌─────────────────────────┐      ┌───────────────────────────────────┐ │
-│ │ Tabela: presences       │      │ Estrutura da Tabela               │ │
-│ ├─────────────────────────┤      ├───────────────────────────────────┤ │
-│ │ 📇 id (text, PK)        │ ───> │ Tipo: PostgreSQL no Supabase      │ │
-│ │ 👤 user_id (text)       │      │ Registros Ativos: 3 mentores      │ │
-│ │ 🏷️ name (text)          │      │ Tamanho estimado: 12 KB           │ │
-│ │ 🧠 dna (text)           │      │                                   │ │
-│ │ ⚙️ metadata (jsonb)     │      │ [ Visualizar Linhas do Banco ]    │ │
-│ └─────────────────────────┘      └───────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────────────────┘
-```
+### C. Fluxo de Tarefas (Estrutura Unificada de Execução)
+Consolida em uma única tabela todos os metadados de execução física (áudio, escrita, finanças, bioenergética) para permitir flexibilidade de execução sem tabelas separadas por tipo.
 
-### Funcionalidades do Visualizador:
-1.  **Mapeador Página-Tabela**: Selecione qualquer página do seu app, e veja visualmente em formato de cards quais tabelas alimentam aquela tela.
-2.  **Inspetor de Colunas e Tipagem**: Exibe quais tipos de dados estão sendo salvos (inteiros, strings, JSONs).
-3.  **Status de Conexão em Tempo Real**: Indicador de que a tabela está respondendo perfeitamente no Supabase.
+---
+
+## ─── 3. SCHEMAS SQL PARA SUPABASE (POSTGRESQL) ───
+
+Abaixo estão as tabelas ordenadas de maneira correta para execução imediata no painel SQL do seu Supabase Self-Hosted.
+
+```sql
+-- 1. TABELA DE OBJETIVOS
+CREATE TABLE objectives (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  burning_desire TEXT NOT NULL,
+  feeling_of_achievement TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium',
+  manifestation_status TEXT NOT NULL DEFAULT 'conception',
+  sacrifice TEXT NOT NULL,
+  action_plan TEXT NOT NULL,
+  start_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deadline TIMESTAMPTZ NOT NULL,
+  mental_recurrence BOOLEAN DEFAULT FALSE,
+  manifestation_images TEXT[] DEFAULT '{}',
+  motivational_videos TEXT[] DEFAULT '{}',
+  evolutionary_context TEXT NOT NULL,
+  risks JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. TABELA DE METAS (Forte ligação com Objetivos)
+CREATE TABLE goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  objective_id UUID NOT NULL REFERENCES objectives(id) ON DELETE CASCADE,
+  intention TEXT NOT NULL,
+  description TEXT,
+  meaning TEXT NOT NULL,
+  expected_evolution TEXT NOT NULL,
+  deadline TIMESTAMPTZ NOT NULL,
+  consequence TEXT NOT NULL,
+  risks TEXT NOT NULL,
+  impact_level TEXT NOT NULL DEFAULT 'medium',
+  strategy TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#c3b1e1',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. TABELA DE TAREFAS (Forte ligação com Metas)
+CREATE TABLE tasks (
+  -- Identidade da Tarefa
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id UUID NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  execution_type TEXT NOT NULL DEFAULT 'standard',
+  description TEXT,
+  visual_anchor_url TEXT,
+  status TEXT DEFAULT 'todo',
+  
+  -- Estrutura Executável
+  complexity TEXT DEFAULT 'low',
+  subtasks JSONB DEFAULT '[]'::jsonb,
+
+  -- Tempo e Agenda
+  scheduled_date TIMESTAMPTZ,
+  estimated_duration TEXT DEFAULT '',
+  actual_duration INTEGER DEFAULT 0,
+  is_recurring BOOLEAN DEFAULT FALSE,
+  recurrence_pattern TEXT,
+  recurrence_days TEXT[] DEFAULT '{}',
+  parent_recurrence_id UUID,
+
+  -- Impacto e Prioridade
+  priority TEXT DEFAULT 'medium',
+  strategic_impact TEXT DEFAULT 'medium',
+
+  -- Execução Parapsíquica / Bioenergética ('energy-work')
+  energy_volume INTEGER DEFAULT 0,
+  sync_modality INTEGER DEFAULT 0,
+  hyperlucidity INTEGER DEFAULT 0,
+  technique TEXT,
+  sensations TEXT[] DEFAULT '{}',
+  phenomena TEXT[] DEFAULT '{}',
+  self_research_notes TEXT,
+
+  -- Vinculação de Notas
+  linked_document_ids UUID[] DEFAULT '{}',
+
+  -- Detalhes Multimodais (Áudio, PDF e Finanças)
+  audio_url TEXT,
+  audio_duration INTEGER DEFAULT 0,
+  audio_notes TEXT,
+  
+  document_url TEXT,
+  written_content TEXT,
+  word_count INTEGER DEFAULT 0,
+
+  transaction_value NUMERIC(12, 2) DEFAULT 0.00,
+  transaction_type TEXT,
+  financial_category_id UUID,
+  receipt_url TEXT,
+
+  -- Controles de Sistema
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);

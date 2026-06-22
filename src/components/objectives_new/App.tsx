@@ -53,13 +53,10 @@ export default function App({
 }: IntegratedAppProps) {
   const navigate = useNavigate();
   const [view, setView] = useState<'dashboard' | 'manager' | 'manifestation' | 'goals-overview'>(initialView);
-  const [activeObjective, setActiveObjective] = useState<any>(() => {
-    if (initialObjectiveId) {
-      const found = fakeDB.objectives.find((o: any) => o.id === initialObjectiveId);
-      if (found) return found;
-    }
-    return null;
-  });
+  const [activeObjective, setActiveObjective] = useState<any>(null);
+  const [objectives, setObjectives] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [allTasks, setAllTasks] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpeningVision, setIsOpeningVision] = useState(false);
   const [isMetaModalOpen, setIsMetaModalOpen] = useState(initialOpenMetaBuilder || false);
@@ -83,6 +80,30 @@ export default function App({
     storage.set('app-theme', theme);
   }, [theme]);
 
+  const syncData = async () => {
+    try {
+      const tree = await objectivesService.getObjectivesTree();
+      setObjectives(tree.objectives || []);
+      setGoals(tree.goals || []);
+      setAllTasks(tree.tasks || []);
+
+      if (initialObjectiveId) {
+        const found = (tree.objectives || []).find((o: any) => o.id === initialObjectiveId);
+        if (found) {
+          setActiveObjective(found);
+        }
+      } else if (initialView === 'manager') {
+        setActiveObjective(null);
+      } else if (tree.objectives && tree.objectives.length > 0) {
+        setActiveObjective(tree.objectives[0]);
+      } else {
+        setActiveObjective(null);
+      }
+    } catch (err) {
+      console.error('[App] Erro ao carregar dados do backend:', err);
+    }
+  };
+
   // Sincroniza view e activeObjective quando os props iniciais mudam (essencial para reabertura com outro Id/View)
   useEffect(() => {
     setView(initialView);
@@ -95,21 +116,6 @@ export default function App({
     if (initialMetaId) {
       setSelectedMetaId(initialMetaId);
     }
-    const syncData = async () => {
-      await fakeDB.syncWithBackend();
-      if (initialObjectiveId) {
-        const found = fakeDB.objectives.find((o: any) => o.id === initialObjectiveId);
-        if (found) {
-          setActiveObjective(found);
-        }
-      } else if (initialView === 'manager') {
-        setActiveObjective(null);
-      } else if (fakeDB.objectives.length > 0) {
-        setActiveObjective(fakeDB.objectives[0]);
-      } else {
-        setActiveObjective(null);
-      }
-    };
     syncData();
   }, [initialObjectiveId, initialView, initialOpenMetaBuilder, initialOpenTaskBuilder, initialMetaId]);
 
@@ -232,15 +238,7 @@ export default function App({
     };
     const handleGoalUpdated = () => {
       setTasksRefreshKey(prev => prev + 1);
-      setActiveObjective((currentObj: any) => {
-        if (currentObj && currentObj.id) {
-          const fresh = fakeDB.objectives.find((o: any) => o.id === currentObj.id);
-          if (fresh) {
-            return { ...fresh };
-          }
-        }
-        return currentObj;
-      });
+      syncData();
     };
     const unsubManager = organismEventBus.subscribe('managerChanged', handleWorkspaceChange);
     const unsubWorkspace = organismEventBus.subscribe('workspaceUpdated', handleWorkspaceChange);
@@ -332,150 +330,103 @@ export default function App({
   useEffect(() => {
     if (!activeObjective || !activeObjective.id) return;
     
-    // Obter metas diretamente do activeObjective atual
-    const objMetas = activeObjective.metas || [];
-    
-    // Em vez de ler do cache falso local, vamos filtrar as tarefas REAIS 
-    // que pertencem a este objetivo (através dos projetos e metas).
-    // Por enquanto, como o app foi moldado, usaremos fakeDB.tasks para filtrar.
-    const realTasks = fakeDB.tasks.filter((t: any) => {
+    // Filtra as tarefas que pertencem a este objetivo (através da meta)
+    const objectiveGoalIds = new Set(goals
+      .filter((g: any) => g.objectiveId === activeObjective.id)
+      .map((g: any) => g.id));
+
+    const realTasks = allTasks.filter((t: any) => {
       if (t.objectiveId === activeObjective.id) {
         return true;
       }
       if (t.objectiveTitle && t.objectiveTitle.toLowerCase() === activeObjective.title.toLowerCase()) {
         return true;
       }
-      if (t.projectId && t.projectId !== 'none') {
-        const parentProject = fakeDB.projects.find((p: any) => p.id === t.projectId);
-        if (parentProject) {
-          const parentGoal = fakeDB.goals.find((g: any) => g.id === parentProject.goalId);
-          if (parentGoal && parentGoal.objectiveId === activeObjective.id) {
-            return true;
-          }
-        }
-      } else if (t.goalId && t.goalId !== 'none') {
-        const parentGoal = fakeDB.goals.find((g: any) => g.id === t.goalId);
-        if (parentGoal && parentGoal.objectiveId === activeObjective.id) {
-          return true;
-        }
+      if (t.goalId && t.goalId !== 'none') {
+        return objectiveGoalIds.has(t.goalId);
       }
       return false;
     });
 
     // Converter para o formato local TaskData que a tela espera
     const mappedTasks = realTasks.map((t: any) => ({
-      ...t, // propagar todas as propriedades da tarefa
+      ...t,
       id: t.id,
       title: t.title,
       duration: t.duration || 25,
       type: t.status === 'done' || t.status === 'completed' ? 'completed' : 'todo',
       status: t.status === 'done' || t.status === 'completed' ? 'completed' : (t.status === 'doing' || t.status === 'in-progress' ? 'in-progress' : 'todo'),
       timestamp: new Date(t.createdAt || Date.now()).toISOString(),
-      metaId: (t.projectId && t.projectId !== 'none') ? fakeDB.projects.find((p:any) => p.id === t.projectId)?.goalId : t.goalId,
+      metaId: t.goalId,
       energyLevel: 80,
-      focusScore: 90,
-      projectId: t.projectId
+      focusScore: 90
     }));
 
     setTasks(mappedTasks);
-  }, [activeObjective, fakeDB.tasks, tasksRefreshKey]);
+  }, [activeObjective, allTasks, goals, tasksRefreshKey]);
 
   const stats = getPerformanceStats(tasks);
 
   const handleSaveMeta = (newMeta: MetaData) => {
-    const metas = storage.get<MetaData[]>(`metas_${activeObjective.title}`, []);
-    const updatedMetas = [...metas, newMeta];
-    storage.set(`metas_${activeObjective.title}`, updatedMetas);
-    const updatedObjective = { ...activeObjective, metas: updatedMetas };
-    setActiveObjective(updatedObjective);
     if (activeObjective && activeObjective.id) {
-      fakeDB.updateObjective(activeObjective.id, { metas: updatedMetas });
-      fakeDB.createGoal({
-        id: newMeta.id,
+      objectivesService.saveGoal(newMeta.id, {
         objectiveId: activeObjective.id,
-        title: newMeta.intention,
-        progress: (newMeta as any).progress ?? 0,
-        status: (newMeta as any).status ?? 'todo',
-        color: newMeta.color,
-        deadline: newMeta.deadline
-      });
+        intention: newMeta.intention,
+        description: newMeta.description,
+        meaning: newMeta.meaning,
+        expectedEvolution: newMeta.evolucaoEsperada || '',
+        deadline: new Date(newMeta.deadline).getTime(),
+        consequence: newMeta.consequence,
+        risks: newMeta.risks,
+        impactLevel: newMeta.impact || 'medium',
+        strategy: newMeta.strategy,
+        color: newMeta.color
+      }).then(() => {
+        syncData();
+      }).catch(err => console.error('[App] Erro ao salvar meta no backend:', err));
     }
   };
 
   const handleSaveTask = (newTask: TaskData) => {
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    storage.set(`tasks_${activeObjective.title}`, updatedTasks);
-    fakeDB.createTask({
-      ...newTask,
-      id: newTask.id,
-      title: newTask.title,
+    objectivesService.saveTask(newTask.id, {
       goalId: newTask.metaId,
-      objectiveId: activeObjective.id,
-      objectiveTitle: activeObjective.title,
+      parentTaskId: newTask.parentTaskId || null,
+      title: newTask.title,
+      executionType: newTask.executionType || 'standard',
+      description: newTask.description || '',
+      visualAnchorUrl: newTask.visualAnchorUrl || newTask.imageUrl || '',
       status: newTask.status === 'completed' ? 'done' : newTask.status === 'in-progress' ? 'doing' : 'todo',
-      date: new Date(newTask.date).getTime()
-    });
+      complexity: newTask.complexity || 'low',
+      subtasks: newTask.subtasks || [],
+      scheduledDate: new Date(newTask.date).getTime(),
+      estimatedDuration: newTask.estimatedDuration || '',
+      actualDuration: newTask.actualDuration || 0,
+      priority: newTask.priority || 'medium',
+      completedAt: newTask.completedAt ? new Date(newTask.completedAt).getTime() : undefined
+    }).then(() => {
+      syncData();
+    }).catch(err => console.error('[App] Erro ao salvar tarefa no backend:', err));
   };
 
   const handleUpdateTask = (updatedTask: TaskData) => {
-    const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-    setTasks(updatedTasks);
-    storage.set(`tasks_${activeObjective.title}`, updatedTasks);
-
-    const foundTask = fakeDB.tasks.find(t => t.id === updatedTask.id);
-    if (foundTask) {
-      // Preserve existing valid associations to avoid orphaning tasks when status is changed
-      const originalGoalId = foundTask.goalId;
-      const originalProjectId = foundTask.projectId;
-      const originalObjectiveId = foundTask.objectiveId;
-      const originalObjectiveTitle = foundTask.objectiveTitle;
-
-      Object.assign(foundTask, updatedTask);
-      foundTask.status = updatedTask.status === 'completed' ? 'done' : updatedTask.status === 'in-progress' ? 'doing' : 'todo';
-      foundTask.title = updatedTask.title;
-
-      let finalGoalId = 'none';
-      const uTaskAny = updatedTask as any;
-      if (uTaskAny.goalId && uTaskAny.goalId !== 'none') {
-        finalGoalId = uTaskAny.goalId;
-      } else if (updatedTask.metaId && updatedTask.metaId !== 'none') {
-        finalGoalId = updatedTask.metaId;
-      } else if (originalGoalId && originalGoalId !== 'none') {
-        finalGoalId = originalGoalId;
-      }
-      foundTask.goalId = finalGoalId;
-
-      if (!foundTask.projectId || foundTask.projectId === 'none') {
-        if (originalProjectId && originalProjectId !== 'none') {
-          foundTask.projectId = originalProjectId;
-        }
-      }
-
-      // Preserve or assign objectiveId & objectiveTitle
-      foundTask.objectiveId = originalObjectiveId || activeObjective.id || 'none';
-      foundTask.objectiveTitle = originalObjectiveTitle || activeObjective.title || 'none';
-
-      foundTask.date = new Date(updatedTask.date).getTime();
-      safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
-      organismEventBus.emit('goalUpdated', foundTask);
-
-      // Save task to backend
-      objectivesService.saveTask(foundTask.id, foundTask).catch(err => {
-        console.warn('[App.tsx] Erro ao sincronizar atualização de tarefa com o backend:', err);
-      });
-    } else {
-      fakeDB.createTask({
-        ...updatedTask,
-        id: updatedTask.id,
-        title: updatedTask.title,
-        goalId: updatedTask.metaId,
-        objectiveId: activeObjective.id,
-        objectiveTitle: activeObjective.title,
-        status: updatedTask.status === 'completed' ? 'done' : updatedTask.status === 'in-progress' ? 'doing' : 'todo',
-        date: new Date(updatedTask.date).getTime()
-      });
-    }
+    objectivesService.saveTask(updatedTask.id, {
+      goalId: updatedTask.metaId,
+      parentTaskId: updatedTask.parentTaskId || null,
+      title: updatedTask.title,
+      executionType: updatedTask.executionType || 'standard',
+      description: updatedTask.description || '',
+      visualAnchorUrl: updatedTask.visualAnchorUrl || updatedTask.imageUrl || '',
+      status: updatedTask.status === 'completed' ? 'done' : updatedTask.status === 'in-progress' ? 'doing' : 'todo',
+      complexity: updatedTask.complexity || 'low',
+      subtasks: updatedTask.subtasks || [],
+      scheduledDate: new Date(updatedTask.date).getTime(),
+      estimatedDuration: updatedTask.estimatedDuration || '',
+      actualDuration: updatedTask.actualDuration || 0,
+      priority: updatedTask.priority || 'medium',
+      completedAt: updatedTask.completedAt ? new Date(updatedTask.completedAt).getTime() : undefined
+    }).then(() => {
+      syncData();
+    }).catch(err => console.error('[App] Erro ao atualizar tarefa no backend:', err));
 
     if (selectedTaskForExecution?.id === updatedTask.id) {
       setSelectedTaskForExecution(updatedTask);
@@ -493,10 +444,9 @@ export default function App({
   };
 
   const handleDeleteTask = (taskId: string) => {
-    const updatedTasks = tasks.filter(t => t.id !== taskId);
-    setTasks(updatedTasks);
-    storage.set(`tasks_${activeObjective.title}`, updatedTasks);
-    fakeDB.deleteTask(taskId);
+    objectivesService.deleteTask(taskId).then(() => {
+      syncData();
+    }).catch(err => console.error('[App] Erro ao deletar tarefa no backend:', err));
   };
 
   const openExecution = (task: TaskData) => {
@@ -590,13 +540,16 @@ export default function App({
             onClose();
           }
         }} 
-        onSave={(data) => {
-          if (activeObjective && activeObjective.id) {
-            const updated = fakeDB.updateObjective(activeObjective.id, data);
-            setActiveObjective(updated || { ...activeObjective, ...data });
-          } else {
-            const created = fakeDB.createObjective(data);
-            setActiveObjective(created);
+        onSave={async (data) => {
+          try {
+            const targetId = (activeObjective && activeObjective.id) ? activeObjective.id : crypto.randomUUID();
+            const saved = await objectivesService.saveObjective(targetId, data);
+            await syncData();
+            if (saved) {
+              setActiveObjective(saved);
+            }
+          } catch (err) {
+            console.error('[App] Erro ao salvar objetivo no backend:', err);
           }
           setView('manifestation');
         }} 

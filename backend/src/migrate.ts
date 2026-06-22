@@ -85,28 +85,20 @@ async function runMigrations() {
     }
   }
 
-  // Purga absoluta de todas as sementes e tabelas para produção limpa sem dados fakes
-  try {
-    console.log('[Migrations] Realizando purga absoluta de dados fake para produção...');
-    
-    await db.query(`DELETE FROM tasks`);
-    await db.query(`DELETE FROM projects`);
-    await db.query(`DELETE FROM goals`);
-    await db.query(`DELETE FROM objectives`);
-    await db.query(`DELETE FROM diary_entries`);
-    await db.query(`DELETE FROM pages`);
-    await db.query(`DELETE FROM folders`);
-    await db.query(`DELETE FROM workspaces`);
-    await db.query(`DELETE FROM financial_transactions`);
-    await db.query(`DELETE FROM financial_projections`);
-    await db.query(`DELETE FROM financial_categories`);
-    await db.query(`DELETE FROM financial_mural`);
+  // Purga de dados fake segura e individual por tabela
+  const tablesToPurge = [
+    'tarefas', 'metas', 'objetivos', 'tasks', 'projects', 'goals', 'objectives',
+    'diary_entries', 'pages', 'folders', 'workspaces',
+    'financial_transactions', 'financial_projections', 'financial_categories', 'financial_mural'
+  ];
 
-    console.log('[Migrations] Todas as tabelas foram limpas com absoluto sucesso para produção de alto nível.');
-  } catch (err) {
-    console.warn('[Migrations] Alerta: Falha ao purgar registros:', err);
+  for (const table of tablesToPurge) {
+    try {
+      await db.query(`DELETE FROM ${table}`);
+    } catch {
+      // Ignora erro se a tabela ainda não existir no banco
+    }
   }
-
   console.log('[Migrations] Todas as migrations foram executadas.');
 }
 

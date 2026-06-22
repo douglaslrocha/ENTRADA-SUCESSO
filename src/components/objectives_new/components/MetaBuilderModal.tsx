@@ -391,25 +391,6 @@ export default function MetaBuilderModal({
                 
                 <div className="bg-neutral-white/[0.02] border border-neutral-white/5 rounded-[2rem] p-6 md:p-10 space-y-8 md:space-y-12">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <label className="text-lg md:text-xl font-bold text-neutral-white/90">Contexto da Experiência</label>
-                        <span className="text-[9px] font-bold text-neutral-white/20 uppercase tracking-widest">O que estamos medindo?</span>
-                      </div>
-                      <select 
-                        value={formData.contexto || 'geral'}
-                        onChange={(e) => setFormData({ ...formData, contexto: e.target.value })}
-                        className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-2xl p-5 md:p-6 text-xs md:text-sm text-neutral-white focus:border-pastel-green/50 focus:ring-0 transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="geral">Geral / Produção</option>
-                        <option value="leitura">Leitura / Estudo</option>
-                        <option value="prática">Prática / Treino</option>
-                        <option value="financeiro">Financeiro / Gestão</option>
-                        <option value="foco">Foco / Meditação</option>
-                        <option value="audio">Áudio / Consumo</option>
-                      </select>
-                      <p className="text-[10px] text-neutral-white/30 italic">Define sobre qual perspectiva a evolução será interpretada.</p>
-                    </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -654,7 +635,7 @@ export default function MetaBuilderModal({
               <section className="space-y-8 md:space-y-12">
                 <div className="flex items-center gap-4">
                   <span className="w-8 h-8 rounded-full bg-neutral-white/5 border border-neutral-white/10 flex items-center justify-center text-[10px] font-bold text-neutral-white/40">06</span>
-                  <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-pastel-indigo">Estratégia + Ações</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-pastel-indigo">Estratégia</h3>
                 </div>
 
                 <div className="space-y-8 md:space-y-12">
@@ -668,104 +649,6 @@ export default function MetaBuilderModal({
                       placeholder="Caminho para a vitória..."
                       className="w-full bg-neutral-white/5 border border-neutral-white/10 rounded-2xl md:rounded-3xl p-6 md:p-8 text-sm md:text-lg text-neutral-white/60 focus:border-pastel-indigo/50 focus:ring-0 transition-all min-h-[120px] md:min-h-[150px]"
                     />
-                  </div>
-
-                  <div className="space-y-6 md:space-y-8">
-                    <div className="flex items-center justify-between">
-                      <label className="text-lg md:text-xl font-bold text-neutral-white/90 block">Quais ações?</label>
-                      <button 
-                        onClick={handleAddAction}
-                        className="flex items-center gap-2 px-3 md:px-4 py-2 bg-pastel-indigo/10 hover:bg-pastel-indigo/20 border border-pastel-indigo/30 rounded-xl text-[9px] md:text-[10px] font-bold text-pastel-indigo transition-all"
-                      >
-                        <Plus size={12} className="md:w-[14px] md:h-[14px]" />
-                        Adicionar
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {formData.actions.map((action, index) => (
-                        <div key={action.id} className="flex items-center gap-2 md:gap-4 group">
-                          <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-neutral-white/5 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-neutral-white/20 cursor-grab active:cursor-grabbing flex-shrink-0 relative">
-                            <GripVertical size={12} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity absolute inset-0 m-auto md:w-[14px] md:h-[14px]" />
-                            <span className="opacity-0 md:opacity-100 md:group-hover:opacity-0 transition-opacity">{index + 1}</span>
-                          </div>
-                          <input 
-                            type="text"
-                            value={action.description}
-                            onChange={(e) => handleUpdateAction(action.id, e.target.value)}
-                            placeholder="Ação..."
-                            className="flex-1 bg-neutral-white/5 border border-neutral-white/10 rounded-xl px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-neutral-white focus:border-pastel-indigo/50 focus:ring-0 transition-all"
-                          />
-                          <button 
-                            onClick={() => handleRemoveAction(action.id)}
-                            className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-neutral-white/5 border border-neutral-white/10 flex items-center justify-center text-neutral-white/20 hover:text-pastel-pink hover:bg-pastel-pink/10 transition-all flex-shrink-0"
-                          >
-                            <Trash2 size={14} className="md:w-[16px] md:h-[16px]" />
-                          </button>
-                        </div>
-                      ))}
-                      
-                      {formData.actions.length > 0 && (
-                        <div className="pt-4 space-y-4">
-                          <button 
-                            onClick={handleTransformToTasks}
-                            className="w-full py-3 md:py-4 border border-dashed border-neutral-white/10 rounded-xl md:rounded-2xl flex items-center justify-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold text-neutral-white/20 hover:text-neutral-white/40 hover:border-neutral-white/20 transition-all group relative overflow-hidden"
-                          >
-                            <AnimatePresence>
-                              {showTaskFeedback ? (
-                                <motion.div 
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  exit={{ y: -20, opacity: 0 }}
-                                  className="flex items-center gap-2 text-pastel-green"
-                                >
-                                  <CheckCircle2 size={14} className="md:w-[16px] md:h-[16px]" />
-                                  Ações preparadas
-                                </motion.div>
-                              ) : (
-                                <motion.div 
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  exit={{ y: -20, opacity: 0 }}
-                                  className="flex items-center gap-2 md:gap-3"
-                                >
-                                  <Layout size={14} className="group-hover:scale-110 transition-transform md:w-[16px] md:h-[16px]" />
-                                  Transformar em tarefas
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </button>
-                          
-                          <div className="flex items-center gap-2 px-4 py-2 bg-neutral-white/5 rounded-xl border border-neutral-white/5">
-                            <Info size={10} className="text-neutral-white/20 md:w-[12px] md:h-[12px]" />
-                            <p className="text-[9px] md:text-[10px] font-medium text-neutral-white/20">
-                              A sequência lógica define a ordem de execução.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 pt-4 md:pt-8">
-                      <div className="space-y-3 md:space-y-4">
-                        <label className="text-[10px] md:text-xs font-bold text-neutral-white/30 uppercase tracking-widest">Ritmo de Execução</label>
-                        <div className="flex gap-2">
-                          {['daily', 'weekly', 'custom'].map((r) => (
-                            <button
-                              key={r}
-                              onClick={() => setFormData({ ...formData, rhythm: r as any })}
-                              className={`flex-1 py-2.5 md:py-3 rounded-xl border text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all ${
-                                formData.rhythm === r 
-                                  ? 'bg-pastel-indigo/20 border-pastel-indigo/30 text-pastel-indigo' 
-                                  : 'bg-neutral-white/5 border-neutral-white/10 text-neutral-white/30'
-                              }`}
-                            >
-                              {r === 'daily' ? 'Diário' : r === 'weekly' ? 'Semanal' : 'Personalizado'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </section>

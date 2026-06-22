@@ -205,12 +205,12 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
             risks = EXCLUDED.risks,
             updated_at = CURRENT_TIMESTAMP
         `, [
-          obj.id, userId, obj.title, obj.burningDesire || '', obj.feelingOfAchievement || '',
+          obj.id, userId, obj.title, obj.burningDesire || '', (obj.feelingOfAchievement || obj.feelings || ''),
           obj.priority || 'medium', obj.manifestationStatus || 'conception', obj.sacrifice || '',
-          obj.actionPlan || '', obj.startDate ? new Date(obj.startDate) : null,
+          (obj.actionPlan || obj.plan || ''), obj.startDate ? new Date(obj.startDate) : null,
           obj.deadline ? new Date(obj.deadline) : null,
           obj.mentalRecurrence ? 1 : 0,
-          JSON.stringify(obj.manifestationImages || []),
+          JSON.stringify(obj.manifestationImages || obj.media || []),
           JSON.stringify(obj.motivationalVideos || []),
           obj.evolutionaryContext || '',
           JSON.stringify(obj.risks || [])
@@ -377,12 +377,12 @@ export async function objectivesRoutes(fastify: FastifyInstance) {
           updated_at = CURRENT_TIMESTAMP
         RETURNING *
       `, [
-        id, userId, obj.title, obj.burningDesire || '', obj.feelingOfAchievement || '',
+        id, userId, obj.title, obj.burningDesire || '', (obj.feelingOfAchievement || obj.feelings || ''),
         obj.priority || 'medium', obj.manifestationStatus || 'conception', obj.sacrifice || '',
-        obj.actionPlan || '', obj.startDate ? new Date(obj.startDate) : null,
+        (obj.actionPlan || obj.plan || ''), obj.startDate ? new Date(obj.startDate) : null,
         obj.deadline ? new Date(obj.deadline) : null,
         obj.mentalRecurrence ? 1 : 0,
-        JSON.stringify(obj.manifestationImages || []),
+        JSON.stringify(obj.manifestationImages || obj.media || []),
         JSON.stringify(obj.motivationalVideos || []),
         obj.evolutionaryContext || '',
         JSON.stringify(obj.risks || [])

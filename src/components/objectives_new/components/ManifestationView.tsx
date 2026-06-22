@@ -69,9 +69,18 @@ export default function ManifestationView({
   const [isMetaModalOpen, setIsMetaModalOpen] = useState(false);
   const [metas, setMetas] = useState<MetaData[]>(data.metas || []);
 
+  const normalizeStorageKey = (title: string): string => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 50);
+  };
+
   useEffect(() => {
-    // Load draft if exists
-    const savedMetas = storage.get<MetaData[]>(`metas_${data.title}`, []);
+    const storageKey = normalizeStorageKey(data.title);
+    const savedMetas = storage.get<MetaData[]>(`metas_${storageKey}`, []);
     if (savedMetas.length > 0) {
       setMetas(savedMetas);
     }
@@ -80,7 +89,8 @@ export default function ManifestationView({
   const handleSaveMeta = (newMeta: MetaData) => {
     const updatedMetas = [...metas, newMeta];
     setMetas(updatedMetas);
-    storage.set(`metas_${data.title}`, updatedMetas);
+    const storageKey = normalizeStorageKey(data.title);
+    storage.set(`metas_${storageKey}`, updatedMetas);
     if (onSaveMeta) {
       onSaveMeta(newMeta);
     }

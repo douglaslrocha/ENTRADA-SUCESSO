@@ -41,8 +41,18 @@ export default function GoalsOverview({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
   useEffect(() => {
-    const parsedMetas = storage.get<MetaData[]>(`metas_${objectiveTitle}`, []);
-    const allTasks = storage.get<TaskData[]>(`tasks_${objectiveTitle}`, []);
+    const normalizeStorageKey = (title: string): string => {
+      return title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 50);
+    };
+
+    const storageKey = normalizeStorageKey(objectiveTitle);
+    const parsedMetas = storage.get<MetaData[]>(`metas_${storageKey}`, []);
+    const allTasks = storage.get<TaskData[]>(`tasks_${storageKey}`, []);
     
     if (parsedMetas.length > 0) {
       const metasWithTasks = parsedMetas.map(meta => {

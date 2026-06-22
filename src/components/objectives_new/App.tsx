@@ -79,13 +79,28 @@ export default function App({
     }
     storage.set('app-theme', theme);
   }, [theme]);
+function normalizeStorageKey(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '_')
+    .substring(0, 50);
+}
 
   const syncData = async () => {
     try {
+      console.log('[App] Iniciando sincronização de dados...');
       const tree = await objectivesService.getObjectivesTree();
       const loadedObjectives = tree.objectives || [];
       const loadedGoals = tree.goals || [];
       const loadedTasks = tree.tasks || [];
+
+      console.log('[App] Dados carregados do backend:', {
+        objectives: loadedObjectives.length,
+        goals: loadedGoals.length,
+        tasks: loadedTasks.length
+      });
 
       setObjectives(loadedObjectives);
       setGoals(loadedGoals);
@@ -164,25 +179,28 @@ export default function App({
           status: t.status === 'done' || t.status === 'completed' ? 'completed' : (t.status === 'doing' || t.status === 'in-progress' ? 'in-progress' : 'todo')
         }));
 
-        storage.set(`metas_${obj.title}`, mappedMetas);
-        storage.set(`tasks_${obj.title}`, mappedTasks);
+        const storageKey = normalizeStorageKey(obj.title);
+        storage.set(`metas_${storageKey}`, mappedMetas);
+        storage.set(`tasks_${storageKey}`, mappedTasks);
       });
 
       if (initialObjectiveId) {
         const found = loadedObjectives.find((o: any) => o.id === initialObjectiveId);
         if (found) {
+          const storageKey = normalizeStorageKey(found.title);
           setActiveObjective({
             ...found,
-            metas: storage.get(`metas_${found.title}`, [])
+            metas: storage.get(`metas_${storageKey}`, [])
           });
         }
       } else if (initialView === 'manager') {
         setActiveObjective(null);
       } else if (loadedObjectives.length > 0) {
         const first = loadedObjectives[0];
+        const storageKey = normalizeStorageKey(first.title);
         setActiveObjective({
           ...first,
-          metas: storage.get(`metas_${first.title}`, [])
+          metas: storage.get(`metas_${storageKey}`, [])
         });
       } else {
         setActiveObjective(null);
@@ -191,6 +209,7 @@ export default function App({
       console.error('[App] Erro ao carregar dados do backend:', err);
     }
   };
+
 
   // Sincroniza view e activeObjective quando os props iniciais mudam (essencial para reabertura com outro Id/View)
   useEffect(() => {
@@ -580,12 +599,12 @@ export default function App({
 
   useEffect(() => {
     if (!activeObjective) return;
-    // Load metas and tasks for the active objective on mount
-    const savedMetas = storage.get<MetaData[]>(`metas_${activeObjective.title}`, []);
+    const storageKey = normalizeStorageKey(activeObjective.title);
+    const savedMetas = storage.get<MetaData[]>(`metas_${storageKey}`, []);
     if (savedMetas.length > 0) {
       setActiveObjective((prev: any) => ({ ...prev, metas: savedMetas }));
     } else if (activeObjective.metas) {
-      storage.set(`metas_${activeObjective.title}`, activeObjective.metas);
+      storage.set(`metas_${storageKey}`, activeObjective.metas);
     }
   }, [activeObjective?.title]);
 

@@ -241,10 +241,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         { js: 'guidanceContent', db: 'guidance_content' },
         { js: 'consolidationContent', db: 'consolidation_content' },
         { js: 'freeContent', db: 'free_content' },
-        { js: 'posture', db: 'posture' },
-        { js: 'mental', db: 'mental' },
-        { js: 'emotion', db: 'emotion' },
-        { js: 'energy', db: 'energy' }
+        { js: 'posture', db: 'posture', isJson: true },
+        { js: 'mental', db: 'mental', isJson: true },
+        { js: 'emotion', db: 'emotion', isJson: true },
+        { js: 'energy', db: 'energy', isJson: true }
       ];
 
       if (exists) {

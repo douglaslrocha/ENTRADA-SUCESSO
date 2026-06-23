@@ -5193,13 +5193,24 @@ export default function DiaryEditorPage({
         setTitle(entry.title.replace(/\n/g, " "));
         setDescription(entry.description || "");
 
-        // Reset and Load content states
-        setEnergy(entry.energy || []);
-        setMental(entry.mental || []);
-        setEmotion(entry.emotion || []);
-        setInternalState(entry.internalState || []);
-        setInterferences(entry.interferences || []);
-        setPosture(entry.posture || []);
+        // Reset and Load content states with robust parsing to prevent string/array mismatch crashes
+        const parseArray = (val: any) => {
+          if (Array.isArray(val)) return val;
+          if (typeof val === 'string' && val.trim()) {
+            if (val.startsWith('[') && val.endsWith(']')) {
+              try { return JSON.parse(val); } catch (e) {}
+            }
+            return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+          }
+          return [];
+        };
+
+        setEnergy(parseArray(entry.energy));
+        setMental(parseArray(entry.mental));
+        setEmotion(parseArray(entry.emotion));
+        setInternalState(parseArray(entry.internalState));
+        setInterferences(parseArray(entry.interferences));
+        setPosture(parseArray(entry.posture));
         setEssentialActions(entry.essentialActions || initialEssentialActions);
         setTomorrowActions(entry.tomorrowActions || []);
         setRecurringActions(entry.recurringActions || initialRecurringActions);

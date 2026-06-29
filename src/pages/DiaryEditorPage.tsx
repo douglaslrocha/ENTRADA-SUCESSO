@@ -25,7 +25,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { ImageCarousel } from "../extensions/ImageCarousel";
 import { DocFolderBlock } from "../extensions/DocFolderBlock";
 import { AIBlock } from "../extensions/AIBlock";
-import { DocFolderSelector } from "./DocFolderSelector";
+import { DocFolderSelector } from "../components/DocFolderSelector";
 import Suggestion from "@tiptap/suggestion";
 import { common, createLowlight } from "lowlight";
 import tippy, { Instance as TippyInstance } from "tippy.js";
@@ -88,15 +88,15 @@ import {
   Heart,
   Compass,
 } from "lucide-react";
-import { SuggestionList } from "./SuggestionList";
+import { SuggestionList } from "../components/SuggestionList";
 import {
   HighlightModal,
   LinkModal,
   TextColorModal,
   CoverModal,
   IconModal,
-} from "./EditorModals";
-import { DocumentCover, DocumentIcon } from "./DocumentDecoration";
+} from "../components/EditorModals";
+import { DocumentCover, DocumentIcon } from "../components/DocumentDecoration";
 import { documentService } from "../services/documentService";
 import { aiService } from "../services/aiService";
 import { fakeDB } from "../core/fakeDB";
@@ -104,8 +104,8 @@ import { safeLocalStorage } from "../utils/storage";
 import { diaryService } from "../services/diaryService";
 import { objectivesService } from "../services/objectivesService";
 import { organismEventBus } from "../services/organismEventBus";
-import MultimodalExecutionModal from "./objectives_new/components/MultimodalExecutionModal";
-import TaskExecutionModal from "./objectives_new/components/TaskExecutionModal";
+import MultimodalExecutionModal from "../components/objectives_new/components/MultimodalExecutionModal";
+import TaskExecutionModal from "../components/objectives_new/components/TaskExecutionModal";
 import {
   Play,
   Pause,

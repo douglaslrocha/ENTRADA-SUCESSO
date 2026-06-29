@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CentralSubPage } from './CentralPage';
+import { CentralSubPage } from '../../pages/CentralPage';
 
 interface CentralSidebarProps {
   activeSubPage: CentralSubPage;

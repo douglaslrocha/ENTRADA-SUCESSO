@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { BLOCKS, INTERSTITIALS } from './IdentityPage';
 import { identityService } from '../services/identityService';
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Play, Volume2, Sparkles, LayoutGrid, ScrollText, X } from 'lucide-react';
-import { IdentityCard } from './IdentityCard';
+import { IdentityCard } from '../components/IdentityCard';
 
 interface MediaItem {
   id?: string;

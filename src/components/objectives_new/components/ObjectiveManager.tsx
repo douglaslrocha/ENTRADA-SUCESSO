@@ -83,6 +83,7 @@ interface Risk {
 }
 
 interface ObjectiveData {
+  id?: string;
   // Step 1: The Burning Desire
   title: string;
   burningDesire: string; // The "Statement of Desire"

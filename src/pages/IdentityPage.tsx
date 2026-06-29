@@ -6,7 +6,7 @@ import { saveMediaToDB, getMediaFromDB, safeLocalStorage } from '../utils/storag
 import { useAuth } from '../lib/AuthContext';
 import { haptics } from '../services/HapticService';
 import { identityService } from '../services/identityService';
-import { PWAInstallModal } from './PWAInstallModal';
+import { PWAInstallModal } from '../components/PWAInstallModal';
 
 export const BLOCKS = [
   {

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CentralSidebar } from './CentralSidebar';
-import { ApiSettings } from './subpages/ApiSettings';
-import { PlaceholderSection } from './subpages/PlaceholderSection';
+import { CentralSidebar } from '../components/central/CentralSidebar';
+import { ApiSettings } from '../components/central/subpages/ApiSettings';
+import { PlaceholderSection } from '../components/central/subpages/PlaceholderSection';
 
 export type CentralSubPage = 'ia-api' | 'integrations' | 'database' | 'automation' | 'logs';
 

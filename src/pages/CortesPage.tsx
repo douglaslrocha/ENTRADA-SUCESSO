@@ -49,9 +49,9 @@ import { db } from '../services/db';
 import { safeLocalStorage } from '../utils/storage';
 import { backgroundService } from '../services/backgroundService';
 import { existentialFinancialService } from '../services/existentialFinancialService';
-import { TransactionForm } from './TransactionForm';
-import { CategoryManager } from './CategoryManager';
-import { UnifiedFinanceModal } from './UnifiedFinanceModal';
+import { TransactionForm } from '../components/TransactionForm';
+import { CategoryManager } from '../components/CategoryManager';
+import { UnifiedFinanceModal } from '../components/UnifiedFinanceModal';
 import { haptics } from '../services/HapticService';
 import { useOrganismSync } from '../hooks/useOrganismSync';
 import { useLocation } from 'react-router-dom';
@@ -2070,7 +2070,7 @@ DIRETRIZES DE RESPOSTA (IMPORTANT√çSSIMO):
                              </div>
                           </div>
                           <p className="text-[10px] font-bold text-zinc-500 text-center leading-relaxed max-w-xl mx-auto uppercase">
-                            Ì†ΩÌ≤° O segredo da alma soberana: reduzir o gargalo de consumo (Custo) expande instantaneamente o seu combust√≠vel em tempo √∫til de vida comprada.
+                            ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ O segredo da alma soberana: reduzir o gargalo de consumo (Custo) expande instantaneamente o seu combust√≠vel em tempo √∫til de vida comprada.
                           </p>
                         </div>
 

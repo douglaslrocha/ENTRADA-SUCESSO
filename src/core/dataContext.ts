@@ -12,7 +12,7 @@ import { financialObservers } from '../engines/financialObservers';
 import { financialCognitiveEngine } from '../services/financialCognitiveEngine';
 import { managerSemanticEngine } from '../engines/managerSemanticEngine';
 import { presenceService } from '../services/presenceService';
-import { BLOCKS } from '../components/IdentityPage';
+import { BLOCKS } from '../pages/IdentityPage';
 
 /**
  * Service to aggregate all system data and provide a clean context for the AI.

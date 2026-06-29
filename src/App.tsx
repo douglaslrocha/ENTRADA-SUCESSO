@@ -3,13 +3,13 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import EditorComponent from './components/EditorComponent';
 import ManagerComponent from './components/ManagerComponent';
 import { Dashboard } from './components/Dashboard';
-import { MuralSucessoPage } from './components/MuralSucessoPage';
-import { DiaryPage } from './components/DiaryPage';
-import { IdentityPage } from './components/IdentityPage';
-import { IdentityViewPage } from './components/IdentityViewPage';
-import DiaryEditorPage from './components/DiaryEditorPage';
-import { CortesPage } from './components/CortesPage';
-import { CentralPage } from './components/central/CentralPage';
+import { MuralSucessoPage } from './pages/MuralSucessoPage';
+import { DiaryPage } from './pages/DiaryPage';
+import { IdentityPage } from './pages/IdentityPage';
+import { IdentityViewPage } from './pages/IdentityViewPage';
+import DiaryEditorPage from './pages/DiaryEditorPage';
+import { CortesPage } from './pages/CortesPage';
+import { CentralPage } from './pages/CentralPage';
 import { AIControlPage } from './pages/AIControlPage';
 import CentralDeComandoPage from './pages/CentralDeComandoPage';
 import { ProjectsPage } from './pages/ProjectsPage';
@@ -119,6 +119,8 @@ export default function App() {
                       location.pathname === '/central' ? 'central' : 
                       location.pathname === '/profile' ? 'profile' :
                       location.pathname === '/presences' ? 'presences' :
+                      location.pathname === '/identity' ? 'identity' :
+                      location.pathname === '/identity-view' ? 'identity-view' :
                       location.pathname === '/database-map' ? 'database-map' :
                       location.pathname === '/central-de-comando' ? 'central-de-comando' : 'projects';
 
@@ -138,6 +140,11 @@ export default function App() {
     // 3. Dispara sincronização inicial de workspaces
     documentService.syncWithBackend().catch(err => {
       console.warn('[App] Erro na sincronização inicial de workspaces:', err);
+    });
+
+    // 4. Dispara sincronização inicial de tarefas
+    taskService.syncWithBackend().catch(err => {
+      console.warn('[App] Erro na sincronização inicial de tarefas:', err);
     });
   }, []);
 

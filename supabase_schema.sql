@@ -443,29 +443,33 @@ CREATE INDEX IF NOT EXISTS idx_user_profile_user ON user_profile(user_id);
 
 
 -- ==========================================
--- HABILITAR REALTIME (REPLICAÇÃO EM TEMPO REAL)
+-- DESATIVAR RLS EM TODAS AS TABELAS (ACESSO PÚBLICO COM ANON KEY)
 -- ==========================================
-BEGIN;
-  drop publication if exists supabase_realtime;
-  create publication supabase_realtime;
-COMMIT;
+ALTER TABLE identity_answers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE identity_media DISABLE ROW LEVEL SECURITY;
+ALTER TABLE objetivos DISABLE ROW LEVEL SECURITY;
+ALTER TABLE metas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tarefas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE diary_entries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_transactions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_projections DISABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_mural DISABLE ROW LEVEL SECURITY;
+ALTER TABLE workspaces DISABLE ROW LEVEL SECURITY;
+ALTER TABLE folders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE pages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE energy_work_catalogs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE amparadora_chats DISABLE ROW LEVEL SECURITY;
+ALTER TABLE experience_backgrounds DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_cognitive_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE presences DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profile DISABLE ROW LEVEL SECURITY;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE identity_answers;
-ALTER PUBLICATION supabase_realtime ADD TABLE identity_media;
-ALTER PUBLICATION supabase_realtime ADD TABLE objetivos;
-ALTER PUBLICATION supabase_realtime ADD TABLE metas;
-ALTER PUBLICATION supabase_realtime ADD TABLE tarefas;
-ALTER PUBLICATION supabase_realtime ADD TABLE diary_entries;
-ALTER PUBLICATION supabase_realtime ADD TABLE financial_categories;
-ALTER PUBLICATION supabase_realtime ADD TABLE financial_transactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE financial_projections;
-ALTER PUBLICATION supabase_realtime ADD TABLE financial_mural;
-ALTER PUBLICATION supabase_realtime ADD TABLE workspaces;
-ALTER PUBLICATION supabase_realtime ADD TABLE folders;
-ALTER PUBLICATION supabase_realtime ADD TABLE pages;
-ALTER PUBLICATION supabase_realtime ADD TABLE energy_work_catalogs;
-ALTER PUBLICATION supabase_realtime ADD TABLE amparadora_chats;
-ALTER PUBLICATION supabase_realtime ADD TABLE experience_backgrounds;
-ALTER PUBLICATION supabase_realtime ADD TABLE ai_cognitive_settings;
-ALTER PUBLICATION supabase_realtime ADD TABLE presences;
-ALTER PUBLICATION supabase_realtime ADD TABLE user_profile;
+-- Garantir permissões completas para anon e authenticated
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+

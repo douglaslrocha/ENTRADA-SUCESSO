@@ -12,8 +12,23 @@ export enum SoundStyle {
 class HapticService {
   private audioCtx: AudioContext | null = null;
   private currentStyle: SoundStyle = (localStorage.getItem('sound_style') as SoundStyle) || SoundStyle.CRYSTAL;
+  private userGestureReceived = false;
+
+  constructor() {
+    // Só inicializa o áudio após o primeiro gesto do usuário (política do Chrome)
+    const unlock = () => {
+      this.userGestureReceived = true;
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+    document.addEventListener('click', unlock, { once: true });
+    document.addEventListener('touchstart', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+  }
 
   private initAudio() {
+    if (!this.userGestureReceived) return; // Bloqueia se não houve gesto
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }

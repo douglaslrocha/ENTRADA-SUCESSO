@@ -17,7 +17,7 @@ RUN npm run build
 
 # Copia arquivos do backend e instala dependências do backend
 COPY backend/package.json ./backend/
-RUN cd backend && npm install --no-audit --include=dev
+RUN cd backend && npm install --no-audit
 
 # Copia código do backend e compila
 COPY backend/tsconfig.json ./backend/

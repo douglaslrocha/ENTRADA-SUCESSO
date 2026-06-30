@@ -106,17 +106,10 @@ function normalizeStorageKey(title: string): string {
       setGoals(loadedGoals);
       setAllTasks(loadedTasks);
 
-      // Sincronizar as metas e tarefas para localStorage para manter consistência no F5/offline
+      // Vincular as metas ao objetivo correspondente
       loadedObjectives.forEach((obj: any) => {
         if (!obj.title) return;
         const objGoals = loadedGoals.filter((g: any) => g.objectiveId === obj.id);
-        const objGoalIds = new Set(objGoals.map((g: any) => g.id));
-        const objTasks = loadedTasks.filter((t: any) => {
-          if (t.objectiveId === obj.id) return true;
-          if (t.objectiveTitle && t.objectiveTitle.toLowerCase() === obj.title.toLowerCase()) return true;
-          if (t.goalId && t.goalId !== 'none') return objGoalIds.has(t.goalId);
-          return false;
-        });
 
         // Mapear para o formato do modal frontend (MetaData)
         const mappedMetas = objGoals.map((g: any) => ({
@@ -144,64 +137,19 @@ function normalizeStorageKey(title: string): string {
           createdAt: g.createdAt ? new Date(g.createdAt).toISOString() : new Date().toISOString()
         }));
 
-        // Mapear para o formato do modal frontend (TaskData)
-        const mappedTasks = objTasks.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          description: t.description || '',
-          imageUrl: t.visualAnchorUrl || t.imageUrl || '',
-          metaId: t.goalId,
-          subtasks: (t.subtasks || []).map((s: any) => typeof s === 'string' ? { id: crypto.randomUUID(), text: s, completed: false } : s),
-          checklist: t.checklist || [],
-          estimatedDuration: t.estimatedDuration || '',
-          date: t.scheduledDate ? new Date(t.scheduledDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          time: t.time || '',
-          recurrence: t.isRecurring ? 'daily' : 'none',
-          priority: t.priority || 'medium',
-          impact: t.strategicImpact || 'medium',
-          executionStrategy: t.executionStrategy || '',
-          linkedPages: t.linkedDocumentIds || [],
-          metricType: t.executionType || 'entrega',
-          evolucaoEsperada: t.evolucaoEsperada || '',
-          pontoAtual: t.pontoAtual || '0',
-          objetivoDesejado: t.objetivoDesejado || '',
-          contexto: t.contexto || 'geral',
-          formaMedicao: t.formaMedicao || '',
-          ritmoEsperado: t.ritmoEsperado || 'Constante',
-          interpretacao: t.interpretacao || 'linear',
-          createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
-          parentTaskId: t.parentTaskId,
-          visualAnchorUrl: t.visualAnchorUrl,
-          complexity: t.complexity,
-          executionType: t.executionType || 'standard',
-          multimodalConfig: t.multimodalConfig || {},
-          actualDuration: t.actualDuration || 0,
-          status: t.status === 'done' || t.status === 'completed' ? 'completed' : (t.status === 'doing' || t.status === 'in-progress' ? 'in-progress' : 'todo')
-        }));
-
-        const storageKey = normalizeStorageKey(obj.title);
-        storage.set(`metas_${storageKey}`, mappedMetas);
-        storage.set(`tasks_${storageKey}`, mappedTasks);
+        obj.metas = mappedMetas;
       });
 
       if (initialObjectiveId) {
         const found = loadedObjectives.find((o: any) => o.id === initialObjectiveId);
         if (found) {
-          const storageKey = normalizeStorageKey(found.title);
-          setActiveObjective({
-            ...found,
-            metas: storage.get(`metas_${storageKey}`, [])
-          });
+          setActiveObjective(found);
         }
       } else if (initialView === 'manager') {
         setActiveObjective(null);
       } else if (loadedObjectives.length > 0) {
         const first = loadedObjectives[0];
-        const storageKey = normalizeStorageKey(first.title);
-        setActiveObjective({
-          ...first,
-          metas: storage.get(`metas_${storageKey}`, [])
-        });
+        setActiveObjective(first);
       } else {
         setActiveObjective(null);
       }

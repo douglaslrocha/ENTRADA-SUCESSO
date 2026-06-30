@@ -26,6 +26,12 @@ export interface Objective {
   goalIds?: string[];
   createdAt?: number;
   updatedAt?: number;
+  priority?: string;
+  status?: string;
+  startDate?: string;
+  isRecurring?: boolean;
+  evolutionaryContext?: string;
+  tags?: string[];
 }
 
 export interface Goal {
@@ -47,6 +53,7 @@ export interface Goal {
   risks?: string;
   impactLevel?: string;
   strategy?: string;
+  actions?: any[];
 }
 
 export interface Project {
@@ -117,6 +124,171 @@ export interface ObjectivesTree {
 }
 
 export const objectivesService = {
+  mapDbObjectiveToUi(item: any): Objective {
+    if (!item) return {} as Objective;
+    return {
+      id: item.id,
+      userId: item.user_id,
+      title: item.title,
+      burningDesire: item.burning_desire || '',
+      feelings: item.feeling_of_achievement || '',
+      priority: item.priority || 'medium',
+      status: item.manifestation_status || 'planning',
+      sacrifice: item.sacrifice || '',
+      plan: item.action_plan || '',
+      startDate: item.start_date || '',
+      deadline: item.deadline || '',
+      isRecurring: item.mental_recurrence === 1,
+      media: typeof item.manifestation_images === 'string' ? JSON.parse(item.manifestation_images) : (item.manifestation_images || []),
+      evolutionaryContext: item.evolutionary_context || '',
+      risks: typeof item.risks === 'string' ? JSON.parse(item.risks) : (item.risks || []),
+      tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : (item.tags || []),
+      createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+      updatedAt: item.updated_at ? new Date(item.updated_at).getTime() : Date.now()
+    };
+  },
+
+  mapUiObjectiveToDb(objective: Partial<Objective>, id: string): any {
+    const dbForm: any = {
+      id,
+      title: objective.title,
+      burning_desire: objective.burningDesire || '',
+      feeling_of_achievement: objective.feelings || '',
+      priority: objective.priority || 'medium',
+      manifestation_status: objective.status || 'planning',
+      sacrifice: objective.sacrifice || '',
+      action_plan: objective.plan || '',
+      start_date: objective.startDate || null,
+      deadline: objective.deadline || null,
+      mental_recurrence: objective.isRecurring ? 1 : 0,
+      evolutionary_context: objective.evolutionaryContext || '',
+      user_id: 'default'
+    };
+    if (objective.media) dbForm.manifestation_images = JSON.stringify(objective.media);
+    if (objective.risks) dbForm.risks = JSON.stringify(objective.risks);
+    if (objective.tags) dbForm.tags = JSON.stringify(objective.tags);
+    return dbForm;
+  },
+
+  mapDbGoalToUi(item: any): Goal {
+    if (!item) return {} as Goal;
+    return {
+      id: item.id,
+      userId: item.user_id,
+      objectiveId: item.objetivo_id,
+      title: item.title,
+      progress: item.progress || 0,
+      status: item.status || 'todo',
+      color: item.color || '#c3b1e1',
+      deadline: item.deadline ? new Date(item.deadline).getTime() : undefined,
+      intention: item.intention || '',
+      description: item.description || '',
+      meaning: item.meaning || '',
+      expectedEvolution: item.expected_evolution || '',
+      consequence: item.consequence || '',
+      risks: item.risks || '',
+      impactLevel: item.impact_level || 'medium',
+      strategy: item.strategy || '',
+      actions: typeof item.actions === 'string' ? JSON.parse(item.actions) : (item.actions || []),
+      createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now()
+    };
+  },
+
+  mapUiGoalToDb(goal: Partial<Goal>, id: string): any {
+    const dbForm: any = {
+      id,
+      objetivo_id: goal.objectiveId,
+      title: goal.title,
+      progress: goal.progress || 0,
+      status: goal.status || 'todo',
+      color: goal.color || '#c3b1e1',
+      deadline: goal.deadline ? new Date(goal.deadline).toISOString() : null,
+      intention: goal.intention || '',
+      description: goal.description || '',
+      meaning: goal.meaning || '',
+      expected_evolution: goal.expectedEvolution || '',
+      consequence: goal.consequence || '',
+      risks: goal.risks || '',
+      impact_level: goal.impactLevel || 'medium',
+      strategy: goal.strategy || '',
+      user_id: 'default'
+    };
+    if (goal.actions) dbForm.actions = JSON.stringify(goal.actions);
+    return dbForm;
+  },
+
+  mapDbTaskToUi(item: any): Task {
+    if (!item) return {} as Task;
+    return {
+      id: item.id,
+      userId: item.user_id,
+      title: item.title,
+      goalId: item.meta_id || 'none',
+      status: item.status === 'completed' || item.status === 'done' ? 'done' : (item.status === 'doing' || item.status === 'in-progress' ? 'doing' : 'todo'),
+      description: item.description || '',
+      date: item.scheduled_date ? new Date(item.scheduled_date).getTime() : undefined,
+      scheduledDate: item.scheduled_date ? new Date(item.scheduled_date).getTime() : undefined,
+      estimatedDuration: item.estimated_duration || '',
+      actualDuration: item.actual_duration || 0,
+      priority: item.priority || 'medium',
+      visualAnchorUrl: item.visual_anchor_url || '',
+      completedAt: item.completed_at ? new Date(item.completed_at).getTime() : undefined,
+      subtasks: typeof item.subtasks === 'string' ? JSON.parse(item.subtasks) : (item.subtasks || []),
+      complexity: item.complexity || 'medium',
+      strategicImpact: item.strategic_impact || 'medium',
+      energyVolume: item.energy_volume || 0,
+      syncModality: item.sync_modality || 0,
+      hyperlucidity: item.hyperlucidity || 0,
+      technique: item.technique || '',
+      sensations: typeof item.sensations === 'string' ? JSON.parse(item.sensations) : (item.sensations || []),
+      phenomena: typeof item.phenomena === 'string' ? JSON.parse(item.phenomena) : (item.phenomena || []),
+      selfResearchNotes: item.self_research_notes || '',
+      linkedDocumentIds: typeof item.linked_document_ids === 'string' ? JSON.parse(item.linked_document_ids) : (item.linked_document_ids || []),
+      audioUrl: item.audio_url || '',
+      audioDuration: item.audio_duration || 0,
+      audioNotes: item.audio_notes || '',
+      documentUrl: item.document_url || '',
+      writtenContent: item.written_content || '',
+      wordCount: item.word_count || 0,
+      createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now()
+    };
+  },
+
+  mapUiTaskToDb(task: Partial<Task>, id: string): any {
+    const dbForm: any = {
+      id,
+      meta_id: task.goalId && task.goalId !== 'none' ? task.goalId : null,
+      title: task.title,
+      status: task.status || 'todo',
+      description: task.description || '',
+      scheduled_date: task.date || task.scheduledDate ? new Date(task.date || task.scheduledDate!).toISOString() : null,
+      estimated_duration: task.estimatedDuration || '',
+      actual_duration: task.actualDuration || 0,
+      priority: task.priority || 'medium',
+      visual_anchor_url: task.visualAnchorUrl || '',
+      completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
+      complexity: task.complexity || 'medium',
+      strategic_impact: task.strategicImpact || 'medium',
+      energy_volume: task.energyVolume || 0,
+      sync_modality: task.syncModality || 0,
+      hyperlucidity: task.hyperlucidity || 0,
+      technique: task.technique || '',
+      self_research_notes: task.selfResearchNotes || '',
+      audio_url: task.audioUrl || '',
+      audio_duration: task.audioDuration || 0,
+      audio_notes: task.audioNotes || '',
+      document_url: task.documentUrl || '',
+      written_content: task.writtenContent || '',
+      word_count: task.wordCount || 0,
+      user_id: 'default'
+    };
+    if (task.subtasks) dbForm.subtasks = JSON.stringify(task.subtasks);
+    if (task.sensations) dbForm.sensations = JSON.stringify(task.sensations);
+    if (task.phenomena) dbForm.phenomena = JSON.stringify(task.phenomena);
+    if (task.linkedDocumentIds) dbForm.linked_document_ids = JSON.stringify(task.linkedDocumentIds);
+    return dbForm;
+  },
+
   /**
    * Carrega toda a árvore de objetivos, metas e tarefas do Supabase.
    */
@@ -126,48 +298,10 @@ export const objectivesService = {
     const { data: tarefasData } = await supabase.from('tarefas').select('*');
 
     return {
-      objectives: (objetivosData || []).map(item => {
-        const mapped = snakeToCamel(item);
-        if (typeof mapped.media === 'string') {
-          try { mapped.media = JSON.parse(mapped.media); } catch { mapped.media = []; }
-        }
-        if (typeof mapped.kpis === 'string') {
-          try { mapped.kpis = JSON.parse(mapped.kpis); } catch { mapped.kpis = []; }
-        }
-        if (typeof mapped.risks === 'string') {
-          try { mapped.risks = JSON.parse(mapped.risks); } catch { mapped.risks = []; }
-        }
-        if (typeof mapped.relatedObjectives === 'string') {
-          try { mapped.relatedObjectives = JSON.parse(mapped.relatedObjectives); } catch { mapped.relatedObjectives = []; }
-        }
-        if (typeof mapped.tags === 'string') {
-          try { mapped.tags = JSON.parse(mapped.tags); } catch { mapped.tags = []; }
-        }
-        return mapped;
-      }),
-      goals: (metasData || []).map(item => {
-        const mapped = snakeToCamel(item);
-        if (typeof mapped.actions === 'string') {
-          try { mapped.actions = JSON.parse(mapped.actions); } catch { mapped.actions = []; }
-        }
-        return mapped;
-      }),
+      objectives: (objetivosData || []).map(item => this.mapDbObjectiveToUi(item)),
+      goals: (metasData || []).map(item => this.mapDbGoalToUi(item)),
       projects: [],
-      tasks: (tarefasData || []).map(item => {
-        const mapped = snakeToCamel(item);
-        // Garante compatibilidade de tipos para campos JSON
-        const jsonFields = ['sensations', 'phenomena', 'subtasks', 'checklist', 'multimodalConfig', 'energyWorkExecution'];
-        jsonFields.forEach(field => {
-          if (typeof mapped[field] === 'string') {
-            try { 
-              mapped[field] = JSON.parse(mapped[field]); 
-            } catch { 
-              mapped[field] = field === 'multimodalConfig' || field === 'energyWorkExecution' ? {} : []; 
-            }
-          }
-        });
-        return mapped;
-      })
+      tasks: (tarefasData || []).map(item => this.mapDbTaskToUi(item))
     };
   },
 
@@ -177,34 +311,15 @@ export const objectivesService = {
   async syncTree(tree: ObjectivesTree): Promise<boolean> {
     try {
       if (tree.objectives?.length) {
-        const mappedObjs = tree.objectives.map(o => {
-          const payload = camelToSnake(o);
-          if (payload.media && typeof payload.media !== 'string') payload.media = JSON.stringify(payload.media);
-          if (payload.kpis && typeof payload.kpis !== 'string') payload.kpis = JSON.stringify(payload.kpis);
-          if (payload.risks && typeof payload.risks !== 'string') payload.risks = JSON.stringify(payload.risks);
-          if (payload.related_objectives && typeof payload.related_objectives !== 'string') payload.related_objectives = JSON.stringify(payload.related_objectives);
-          if (payload.tags && typeof payload.tags !== 'string') payload.tags = JSON.stringify(payload.tags);
-          return payload;
-        });
+        const mappedObjs = tree.objectives.map(o => this.mapUiObjectiveToDb(o, o.id));
         await supabase.from('objetivos').upsert(mappedObjs);
       }
       if (tree.goals?.length) {
-        const mappedGoals = tree.goals.map(g => {
-          const payload = camelToSnake(g);
-          if (payload.actions && typeof payload.actions !== 'string') payload.actions = JSON.stringify(payload.actions);
-          return payload;
-        });
+        const mappedGoals = tree.goals.map(g => this.mapUiGoalToDb(g, g.id));
         await supabase.from('metas').upsert(mappedGoals);
       }
       if (tree.tasks?.length) {
-        const mappedTasks = tree.tasks.map(t => {
-          const payload = camelToSnake(t);
-          if (payload.subtasks && typeof payload.subtasks !== 'string') payload.subtasks = JSON.stringify(payload.subtasks);
-          if (payload.checklist && typeof payload.checklist !== 'string') payload.checklist = JSON.stringify(payload.checklist);
-          if (payload.multimodal_config && typeof payload.multimodal_config !== 'string') payload.multimodal_config = JSON.stringify(payload.multimodal_config);
-          if (payload.energy_work_execution && typeof payload.energy_work_execution !== 'string') payload.energy_work_execution = JSON.stringify(payload.energy_work_execution);
-          return payload;
-        });
+        const mappedTasks = tree.tasks.map(t => this.mapUiTaskToDb(t, t.id));
         await supabase.from('tarefas').upsert(mappedTasks);
       }
       return true;
@@ -218,33 +333,19 @@ export const objectivesService = {
    * Salva ou atualiza um objetivo
    */
   async saveObjective(id: string, objective: Partial<Objective>): Promise<Objective> {
-    const dbPayload = camelToSnake({ ...objective, id });
-    if (dbPayload.media && typeof dbPayload.media !== 'string') dbPayload.media = JSON.stringify(dbPayload.media);
-    if (dbPayload.kpis && typeof dbPayload.kpis !== 'string') dbPayload.kpis = JSON.stringify(dbPayload.kpis);
-    if (dbPayload.risks && typeof dbPayload.risks !== 'string') dbPayload.risks = JSON.stringify(dbPayload.risks);
-    if (dbPayload.related_objectives && typeof dbPayload.related_objectives !== 'string') dbPayload.related_objectives = JSON.stringify(dbPayload.related_objectives);
-    if (dbPayload.tags && typeof dbPayload.tags !== 'string') dbPayload.tags = JSON.stringify(dbPayload.tags);
-
+    const dbPayload = this.mapUiObjectiveToDb(objective, id);
     const { data, error } = await supabase
       .from('objetivos')
       .upsert(dbPayload)
       .select()
       .single();
 
-    if (error) throw error;
-    
-    const mapped = snakeToCamel(data);
-    if (typeof mapped.media === 'string') {
-      try { mapped.media = JSON.parse(mapped.media); } catch { mapped.media = []; }
-    }
-    if (typeof mapped.kpis === 'string') {
-      try { mapped.kpis = JSON.parse(mapped.kpis); } catch { mapped.kpis = []; }
-    }
-    if (typeof mapped.risks === 'string') {
-      try { mapped.risks = JSON.parse(mapped.risks); } catch { mapped.risks = []; }
+    if (error) {
+      console.error('[ObjectivesService] Erro no upsert objetivo:', error);
+      throw error;
     }
     
-    return mapped;
+    return this.mapDbObjectiveToUi(data);
   },
 
   /**
@@ -259,22 +360,19 @@ export const objectivesService = {
    * Salva ou atualiza uma meta
    */
   async saveGoal(id: string, goal: Partial<Goal>): Promise<Goal> {
-    const dbPayload = camelToSnake({ ...goal, id });
-    if (dbPayload.actions && typeof dbPayload.actions !== 'string') dbPayload.actions = JSON.stringify(dbPayload.actions);
-
+    const dbPayload = this.mapUiGoalToDb(goal, id);
     const { data, error } = await supabase
       .from('metas')
       .upsert(dbPayload)
       .select()
       .single();
 
-    if (error) throw error;
-    
-    const mapped = snakeToCamel(data);
-    if (typeof mapped.actions === 'string') {
-      try { mapped.actions = JSON.parse(mapped.actions); } catch { mapped.actions = []; }
+    if (error) {
+      console.error('[ObjectivesService] Erro no upsert meta:', error);
+      throw error;
     }
-    return mapped;
+    
+    return this.mapDbGoalToUi(data);
   },
 
   /**
@@ -303,39 +401,19 @@ export const objectivesService = {
    * Salva ou atualiza uma tarefa
    */
   async saveTask(id: string, task: Partial<Task>): Promise<Task> {
-    const dbPayload = camelToSnake({ ...task, id });
-    
-    // Tratamento de tipos especiais do PostgreSQL / JSON
-    if (dbPayload.subtasks && typeof dbPayload.subtasks !== 'string') dbPayload.subtasks = JSON.stringify(dbPayload.subtasks);
-    if (dbPayload.checklist && typeof dbPayload.checklist !== 'string') dbPayload.checklist = JSON.stringify(dbPayload.checklist);
-    if (dbPayload.multimodal_config && typeof dbPayload.multimodal_config !== 'string') dbPayload.multimodal_config = JSON.stringify(dbPayload.multimodal_config);
-    if (dbPayload.energy_work_execution && typeof dbPayload.energy_work_execution !== 'string') dbPayload.energy_work_execution = JSON.stringify(dbPayload.energy_work_execution);
-    if (dbPayload.sensations && typeof dbPayload.sensations !== 'string') dbPayload.sensations = JSON.stringify(dbPayload.sensations);
-    if (dbPayload.phenomena && typeof dbPayload.phenomena !== 'string') dbPayload.phenomena = JSON.stringify(dbPayload.phenomena);
-    if (dbPayload.recurrence_days && typeof dbPayload.recurrence_days !== 'string') dbPayload.recurrence_days = JSON.stringify(dbPayload.recurrence_days);
-    if (dbPayload.linked_document_ids && typeof dbPayload.linked_document_ids !== 'string') dbPayload.linked_document_ids = JSON.stringify(dbPayload.linked_document_ids);
-
+    const dbPayload = this.mapUiTaskToDb(task, id);
     const { data, error } = await supabase
       .from('tarefas')
       .upsert(dbPayload)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[ObjectivesService] Erro no upsert tarefa:', error);
+      throw error;
+    }
     
-    const mapped = snakeToCamel(data);
-    const jsonFields = ['subtasks', 'checklist', 'multimodalConfig', 'energyWorkExecution', 'sensations', 'phenomena', 'recurrenceDays', 'linkedDocumentIds'];
-    jsonFields.forEach(field => {
-      if (typeof mapped[field] === 'string') {
-        try { 
-          mapped[field] = JSON.parse(mapped[field]); 
-        } catch { 
-          mapped[field] = field === 'multimodalConfig' || field === 'energyWorkExecution' ? {} : []; 
-        }
-      }
-    });
-    
-    return mapped;
+    return this.mapDbTaskToUi(data);
   },
 
   /**

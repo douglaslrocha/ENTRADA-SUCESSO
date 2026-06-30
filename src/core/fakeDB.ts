@@ -37,11 +37,11 @@ export const fakeDB = {
     metas?: any[];
   }) {
     const objective = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       title: data.title,
       description: data.description || '',
       type: data.type || 'Estratégico',
-      deadline: data.deadline || Date.now() + (Math.random() * 365 * 24 * 60 * 60 * 1000), // Random deadline within a year
+      deadline: data.deadline || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       media: data.media || [
         { id: 'm1', type: 'image', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1920&q=80', name: 'Visão de Futuro' },
         { id: 'm2', type: 'video', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', name: 'Inspiração' }
@@ -57,7 +57,6 @@ export const fakeDB = {
       createdAt: Date.now()
     };
     this.objectives.unshift(objective); // New objectives at the top as requested
-    safeLocalStorage.setItem('objectives_order', JSON.stringify(this.objectives));
     safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
     console.log('[FakeDB] Objetivo criado:', objective);
     organismEventBus.emit('goalUpdated', objective);
@@ -101,7 +100,6 @@ export const fakeDB = {
         ...data,
       };
       this.objectives[index] = updated;
-      safeLocalStorage.setItem('objectives_order', JSON.stringify(this.objectives));
       safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
       console.log('[FakeDB] Objetivo atualizado:', updated);
       organismEventBus.emit('goalUpdated', updated);
@@ -147,7 +145,6 @@ export const fakeDB = {
     this.projects = this.projects.filter(p => !goalIds.includes(p.goalId));
     this.tasks = this.tasks.filter(t => !goalIds.includes(t.goalId));
 
-    safeLocalStorage.setItem('objectives_order', JSON.stringify(this.objectives));
     safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
     console.log('[FakeDB] Objetivo deletado em cascata:', id);
     organismEventBus.emit('goalUpdated');
@@ -161,7 +158,6 @@ export const fakeDB = {
 
   reorderObjectives(newOrder: any[]) {
     this.objectives = newOrder;
-    safeLocalStorage.setItem('objectives_order', JSON.stringify(newOrder));
     safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
     console.log('[FakeDB] Objetivos reordenados e salvos');
     organismEventBus.emit('goalUpdated');
@@ -179,7 +175,7 @@ export const fakeDB = {
 
   createGoal(data: { title: string; objectiveId: string; [key: string]: any }) {
     const goal: any = {
-      id: data.id || Math.random().toString(36).substr(2, 9),
+      id: data.id || crypto.randomUUID(),
       ...data,
       projectIds: data.projectIds || [],
       createdAt: Date.now()
@@ -224,29 +220,6 @@ export const fakeDB = {
         objective.metas.push(metaForm);
       }
 
-      // Sincroniza metatestore no localStorage
-      try {
-        const storedKey = `metas_${objective.title}`;
-        const existingStored = safeLocalStorage.getItem(storedKey);
-        let parsedStored = [];
-        if (existingStored) {
-          parsedStored = JSON.parse(existingStored);
-        }
-        if (!Array.isArray(parsedStored)) {
-          parsedStored = [];
-        }
-        const storedIdx = parsedStored.findIndex((m: any) => m.id === goal.id);
-        if (storedIdx > -1) {
-          parsedStored[storedIdx] = { ...parsedStored[storedIdx], ...metaForm };
-        } else {
-          parsedStored.push(metaForm);
-        }
-        safeLocalStorage.setItem(storedKey, JSON.stringify(parsedStored));
-      } catch (e) {
-        console.error('[FakeDB] Erro ao sincronizar cache metas localStorage:', e);
-      }
-
-      safeLocalStorage.setItem('objectives_order', JSON.stringify(this.objectives));
       console.log(`[FakeDB] Vínculo realizado: Goal ${goal.id} -> Objective ${objective.id}`);
     } else {
       console.warn(`[FakeDB] Falha de relacionamento: Objective ${data.objectiveId} não encontrado.`);
@@ -269,7 +242,7 @@ export const fakeDB = {
 
   createProject(data: { title: string; goalId?: string; [key: string]: any }) {
     const project = {
-      id: data.id || Math.random().toString(36).substr(2, 9),
+      id: data.id || crypto.randomUUID(),
       title: data.title,
       goalId: data.goalId || 'none',
       taskIds: data.taskIds || [],
@@ -310,7 +283,7 @@ export const fakeDB = {
 
   createTask(data: { title: string; id?: string; projectId?: string; goalId?: string; parentTaskId?: string; status?: "todo" | "doing" | "done"; date?: number; [key: string]: any }) {
     const task = {
-      id: data.id || Math.random().toString(36).substr(2, 9),
+      id: data.id || crypto.randomUUID(),
       title: data.title,
       projectId: data.projectId || 'none',
       goalId: data.goalId || 'none',
@@ -398,7 +371,7 @@ export const fakeDB = {
 
   createDocument(data: { title: string; content: string; workspaceId?: string; folderId?: string }) {
     const doc = {
-      id: 'p-' + Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       title: data.title,
       content: data.content,
       workspaceId: data.workspaceId,
@@ -464,7 +437,7 @@ export const fakeDB = {
 
   createWorkspace(title: string) {
     const workspace = {
-      id: 'ws-' + Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       title,
       createdAt: Date.now()
     };
@@ -504,7 +477,7 @@ export const fakeDB = {
 
   createFolder(title: string, workspaceId: string) {
     const folder = {
-      id: 'f-' + Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       title,
       workspaceId,
       createdAt: Date.now()
@@ -586,124 +559,10 @@ export const fakeDB = {
   },
 
   seed() {
-    // Try to load from localStorage first
-    let savedOrder = safeLocalStorage.getItem('objectives_order');
-    let savedDiaries = safeLocalStorage.getItem('diary_entries');
-
-    // Purga cirúrgica e imediata de dados legados do cache local (localStorage) se presentes
-    if (savedDiaries) {
-      try {
-        const parsed = JSON.parse(savedDiaries);
-        if (Array.isArray(parsed)) {
-          const filtered = parsed.filter(e => String(e.id) !== '1' && String(e.id) !== '2' && e.location !== 'ALOHA SURF SPOT' && e.location !== 'RESERVA SUL');
-          if (filtered.length !== parsed.length) {
-            safeLocalStorage.setItem('diary_entries', JSON.stringify(filtered));
-            savedDiaries = JSON.stringify(filtered);
-          }
-        }
-      } catch (e) {}
-    }
-
-    if (savedOrder) {
-      try {
-        const parsed = JSON.parse(savedOrder);
-        if (Array.isArray(parsed)) {
-          const filtered = parsed.filter(o => 
-            o.title !== 'Expansão Global 2026' && 
-            o.title !== 'Liberdade Financeira' &&
-            o.title !== 'Mestrado em Oxford' &&
-            o.title !== 'Maratona de Nova York' &&
-            o.title !== 'Novo Escritório Design' &&
-            o.title !== 'Aprender Japonês' &&
-            o.title !== 'Investimento em Cripto'
-          );
-          if (filtered.length !== parsed.length) {
-            safeLocalStorage.setItem('objectives_order', JSON.stringify(filtered));
-            savedOrder = JSON.stringify(filtered);
-          }
-        }
-      } catch (e) {}
-    }
-
-    const hasSeeded = safeLocalStorage.getItem('has_seeded_fake_db') === 'true';
-
-    if (savedDiaries) {
-      this.diaries = JSON.parse(savedDiaries);
-    }
-
-    if (savedOrder) {
-      try {
-        this.objectives = JSON.parse(savedOrder);
-        console.log('[FakeDB] Objetivos carregados do localStorage');
-        
-        // Rebuild goals from objective.metas and load tasks from storage
-        this.goals = [];
-        this.tasks = [];
-        this.objectives.forEach(obj => {
-          if (!obj.goalIds) {
-            obj.goalIds = [];
-          }
-          if (obj.metas && Array.isArray(obj.metas)) {
-            obj.metas.forEach((meta: any) => {
-              const goal = {
-                id: meta.id,
-                objectiveId: obj.id,
-                title: meta.intention || meta.title || '',
-                progress: meta.progress || 0,
-                status: meta.status || 'todo',
-                color: meta.color,
-                deadline: meta.deadline,
-                projectIds: meta.projectIds || [],
-                createdAt: meta.createdAt ? new Date(meta.createdAt).getTime() : Date.now()
-              };
-              if (!this.goals.some(g => g.id === goal.id)) {
-                this.goals.push(goal);
-              }
-              if (!obj.goalIds.includes(goal.id)) {
-                obj.goalIds.push(goal.id);
-              }
-            });
-          }
-          
-          // Load tasks for this objective from storage
-          const tasksKey = `tasks_${obj.title}`;
-          const savedTasksString = safeLocalStorage.getItem(tasksKey);
-          if (savedTasksString) {
-            try {
-              const savedTasks = JSON.parse(savedTasksString);
-              if (Array.isArray(savedTasks)) {
-                savedTasks.forEach((t: any) => {
-                  const task = {
-                    id: t.id,
-                    title: t.title || '',
-                    projectId: t.projectId || 'none',
-                    goalId: t.metaId || t.goalId || 'none',
-                    objectiveId: obj.id,
-                    objectiveTitle: obj.title,
-                    parentTaskId: t.parentTaskId || null,
-                    status: t.status === 'completed' || t.status === 'done' ? 'done' : (t.status === 'in-progress' || t.status === 'doing' ? 'doing' : 'todo'),
-                    date: t.date ? new Date(t.date).getTime() : undefined,
-                    documentIds: t.documentIds || [],
-                    subtaskIds: t.subtaskIds || [],
-                    createdAt: t.createdAt ? new Date(t.createdAt).getTime() : Date.now()
-                  };
-                  if (!this.tasks.some(taskItem => taskItem.id === task.id)) {
-                    this.tasks.push(task);
-                  }
-                });
-              }
-            } catch (e) {
-              console.error(`[FakeDB] Erro ao carregar tarefas para ${obj.title}:`, e);
-            }
-          }
-        });
-      } catch (e) {
-        console.error('[FakeDB] Erro ao carregar do localStorage', e);
-      }
-    }
-
-    // Always attempt a backend sync to ensure the latest data
-    this.syncWithBackend().catch(err => console.warn('[FakeDB] Falha na sync inicial', err));
+    console.log('[FakeDB] Seed bypassado - carregando diretamente do Supabase');
+    // Prevents double seeding
+    safeLocalStorage.setItem('has_seeded_fake_db', 'true');
+    this.syncWithBackend().catch(err => console.warn('[FakeDB] Falha no sync inicial:', err));
   },
 
   async syncWithBackend() {
@@ -712,7 +571,6 @@ export const fakeDB = {
       const data = await diaryService.getDiaries({ page: 1, limit: 100 });
       if (data.entries && Array.isArray(data.entries)) {
         this.diaries = data.entries;
-        safeLocalStorage.setItem('diary_entries', JSON.stringify(this.diaries));
         
         try {
           semanticLifeEngine.rebuildLongitudinalMemory(this.diaries);
@@ -726,7 +584,9 @@ export const fakeDB = {
         console.log('[FakeDB] Sincronização de diários com o backend concluída.');
       }
     } catch (e) {
-      console.warn('[FakeDB] Falha ao sincronizar diários com o backend, usando cache local:', e);
+      console.warn('[FakeDB] Falha ao sincronizar diários com o backend, limpando diários locais:', e);
+      this.diaries = [];
+      organismEventBus.emit('diaryUpdated');
     }
 
     // Sincroniza Objetivos, Metas, Projetos e Tarefas
@@ -738,9 +598,15 @@ export const fakeDB = {
         this.projects = objData.projects || [];
         this.tasks = objData.tasks || [];
         console.log('[FakeDB] Sincronização de objetivos com o backend concluída.');
+        organismEventBus.emit('goalUpdated');
       }
     } catch (e) {
-      console.warn('[FakeDB] Falha ao sincronizar objetivos com o backend:', e);
+      console.warn('[FakeDB] Falha ao sincronizar objetivos com o backend, limpando dados locais:', e);
+      this.objectives = [];
+      this.goals = [];
+      this.projects = [];
+      this.tasks = [];
+      organismEventBus.emit('goalUpdated');
     }
 
     // Sincroniza Workspaces, Folders e Documents(Pages)
@@ -769,7 +635,11 @@ export const fakeDB = {
         organismEventBus.emit('workspaceUpdated');
       }
     } catch (e) {
-      console.warn('[FakeDB] Falha ao sincronizar workspaces com o backend:', e);
+      console.warn('[FakeDB] Falha ao sincronizar workspaces com o backend, limpando dados locais:', e);
+      this.workspaces = [];
+      this.folders = [];
+      this.documents = [];
+      organismEventBus.emit('workspaceUpdated');
     }
   },
 
@@ -789,7 +659,6 @@ export const fakeDB = {
 
   saveDiaryEntries(entries: any[]) {
     this.diaries = entries;
-    safeLocalStorage.setItem('diary_entries', JSON.stringify(entries));
     safeLocalStorage.setItem('dashboard_snapshot_dirty', 'true');
     if (entries.length > 0) {
       safeLocalStorage.removeItem('dashboard_life_reset');
@@ -817,23 +686,23 @@ export const fakeDB = {
           merged[key] = data[key];
         }
       }
-
+ 
       // Compute silent local cognitive enrichments of meaning
       const enriched = extractSemanticEntitiesLocal(merged);
       
       this.diaries[index] = enriched;
       this.saveDiaryEntries(this.diaries);
-
+ 
       // Sincroniza com backend de forma assíncrona
       diaryService.saveDiary(String(id), enriched).catch(err => {
         console.warn('[FakeDB] Erro ao sincronizar atualização com o backend:', err);
       });
-
+ 
       return this.diaries[index];
     }
     return null;
   },
-
+ 
   createDiaryEntry() {
     const now = new Date();
     const day = now.getDate().toString().padStart(2, '0');
@@ -842,9 +711,9 @@ export const fakeDB = {
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const weekday = now.toLocaleDateString('pt-BR', { weekday: 'long' });
     const monthName = now.toLocaleDateString('pt-BR', { month: 'long' });
-
+ 
     const entry: any = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       location: 'NOVA LOCALIZAÇÃO',
       status: 'active',
       startAt: Date.now(),
@@ -867,18 +736,18 @@ export const fakeDB = {
       year,
       weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1)
     };
-
+ 
     // Pre-initialize basic semantic layout
     const initialized = extractSemanticEntitiesLocal(entry);
-
+ 
     this.diaries.unshift(initialized);
     this.saveDiaryEntries(this.diaries);
-
+ 
     // Sincroniza com backend de forma assíncrona
     diaryService.saveDiary(initialized.id, initialized).catch(err => {
       console.warn('[FakeDB] Erro ao sincronizar nova entrada com o backend:', err);
     });
-
+ 
     return initialized;
   },
 

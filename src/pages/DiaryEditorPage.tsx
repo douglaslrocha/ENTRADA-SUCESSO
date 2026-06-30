@@ -5190,8 +5190,7 @@ export default function DiaryEditorPage({
 
   useEffect(() => {
     if (id) {
-      const entry = fakeDB.diaries.find((e) => String(e.id) === String(id));
-      if (entry) {
+      const loadEntry = (entry: any) => {
         // Source of Truth: setCurrentEntry
         setCurrentEntry(entry);
 
@@ -5264,6 +5263,23 @@ export default function DiaryEditorPage({
 
         // Mark as loaded to enable sync
         loadedEntryId.current = String(id);
+      };
+
+      const cachedEntry = fakeDB.diaries.find((e) => String(e.id) === String(id));
+      if (cachedEntry) {
+        loadEntry(cachedEntry);
+      } else {
+        // Fallback: Fetch directly from database
+        diaryService.getDiaryById(String(id)).then(dbEntry => {
+          if (dbEntry) {
+            if (!fakeDB.diaries.some(d => String(d.id) === String(id))) {
+              fakeDB.diaries.push(dbEntry);
+            }
+            loadEntry(dbEntry);
+          }
+        }).catch(err => {
+          console.error('[DiaryEditorPage] Erro ao carregar diário por ID do banco:', err);
+        });
       }
     }
   }, [id, editor]);

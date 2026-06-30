@@ -410,7 +410,7 @@ CREATE TABLE IF NOT EXISTS presences (
   bio TEXT DEFAULT '',
   images JSONB DEFAULT '[]',
   thoughts JSONB DEFAULT '[]',
-  references JSONB DEFAULT '[]',
+  "references" JSONB DEFAULT '[]',
   
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

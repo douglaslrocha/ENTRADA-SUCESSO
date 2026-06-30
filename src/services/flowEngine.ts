@@ -50,7 +50,7 @@ export const flowEngine = {
     const createdTasks = [];
     if (tasks && Array.isArray(tasks)) {
       for (const t of tasks) {
-        const newTask = taskService.addTask(t.title, t.description);
+        const newTask = await taskService.addTask(t.title, t.description);
         projectService.linkTask(project.id, newTask.id);
         createdTasks.push(newTask);
       }

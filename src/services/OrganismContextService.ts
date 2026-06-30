@@ -33,7 +33,7 @@ export interface OrganismSnapshot {
 export const OrganismContextService = {
   getSnapshot(): OrganismSnapshot {
     const projects = projectService.getProjects();
-    const tasks = taskService.getTasks();
+    const tasks = taskService.getTasksLocal();
     const mural = db.getMuralData();
     const transactions = db.getTransactions();
     const presences = presenceService.getPresences();

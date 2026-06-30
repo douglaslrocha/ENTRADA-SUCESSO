@@ -35,6 +35,8 @@ import { useSwipeBack } from './hooks/useSwipeBack';
 import { haptics } from './services/HapticService';
 import { useOrganismSync } from './hooks/useOrganismSync';
 import { PerfProfiler } from './utils/perfProfiler';
+import { supabase } from './services/supabaseClient';
+import { organismEventBus } from './services/organismEventBus';
 
 import { useAuth } from './lib/AuthContext';
 import WelcomePage from './components/auth/WelcomePage';
@@ -154,6 +156,36 @@ export default function App() {
       setTransactions(db.getTransactions());
     });
   }, []);
+
+  // 5. Configurar canal de comunicação em tempo real (Realtime) com o Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        console.log('[Realtime] Mudança no banco de dados detectada:', payload);
+        const { table } = payload;
+        
+        if (['financial_transactions', 'financial_categories', 'financial_projections', 'financial_mural'].includes(table)) {
+          db.syncWithBackend().then(() => {
+            refreshCategories();
+            organismEventBus.emit('transactionUpdated');
+          });
+        } else if (['objetivos', 'metas', 'tarefas'].includes(table)) {
+          organismEventBus.emit('goalUpdated', payload.new);
+        } else if (['workspaces', 'folders', 'pages'].includes(table)) {
+          documentService.syncWithBackend().then(() => {
+            organismEventBus.emit('managerChanged');
+          });
+        } else if (table === 'diary_entries') {
+          organismEventBus.emit('diaryUpdated', payload.new);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshCategories]);
 
   // Listen to any changes in the organism and propagate them instantly!
   useOrganismSync(undefined, useCallback(() => {

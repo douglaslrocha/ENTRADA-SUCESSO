@@ -1,5 +1,4 @@
-import { safeLocalStorage } from '../utils/storage';
-import { api } from './api';
+import { supabase } from './supabaseClient';
 
 export interface Task {
   id: string;
@@ -9,40 +8,38 @@ export interface Task {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'personal_os_tasks';
-
 export const taskService = {
-  getTasks(): Task[] {
-    const stored = safeLocalStorage.getItem(STORAGE_KEY);
+  async getTasks(): Promise<Task[]> {
+    const { data, error } = await supabase.from('tarefas').select('*');
+    if (error) {
+      console.error('[taskService] Erro ao buscar tarefas do Supabase:', error);
+      const stored = safeLocalStorage.getItem('personal_os_tasks');
+      if (stored) return JSON.parse(stored);
+      return [];
+    }
+    const tasks = (data || []).map((t: any) => ({
+      id: t.id,
+      title: t.title,
+      description: t.description || '',
+      status: t.status === 'done' ? 'completed' : 'pending',
+      createdAt: t.created_at || new Date().toISOString()
+    }));
+    safeLocalStorage.setItem('personal_os_tasks', JSON.stringify(tasks));
+    return tasks;
+  },
+
+  getTasksLocal(): Task[] {
+    const stored = safeLocalStorage.getItem('personal_os_tasks');
     if (stored) return JSON.parse(stored);
     return [];
   },
 
-  saveTasks(tasks: Task[]) {
-    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  },
-
   async syncWithBackend() {
-    try {
-      const data = await api.get('/api/objetivos');
-      if (data && data.tasks) {
-        const mappedTasks: Task[] = data.tasks.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          description: t.description || '',
-          status: t.status === 'done' ? 'completed' : 'pending',
-          createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString()
-        }));
-        this.saveTasks(mappedTasks);
-        console.log('[taskService] Sincronização de tarefas com o backend concluída com sucesso.');
-      }
-    } catch (e) {
-      console.warn('[taskService] Erro ao sincronizar tarefas com backend:', e);
-    }
+    // Agora o Supabase é a nossa fonte primária. Este método serve para manter compatibilidade na inicialização.
+    console.log('[taskService] Sincronização direta com o Supabase ativada.');
   },
 
-  addTask(title: string, description?: string): Task {
-    const tasks = this.getTasks();
+  async addTask(title: string, description?: string): Promise<Task> {
     const newTask: Task = {
       id: 'task_' + Math.random().toString(36).substr(2, 9),
       title,
@@ -50,46 +47,35 @@ export const taskService = {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    this.saveTasks([...tasks, newTask]);
 
-    // Envia ao backend em background
-    const backendTask = {
+    const dbPayload = {
       id: newTask.id,
       title: newTask.title,
       description: newTask.description || '',
       status: 'todo',
-      executionType: 'standard',
+      execution_type: 'standard',
       complexity: 'low',
       priority: 'medium',
-      scheduledDate: new Date(newTask.createdAt).getTime()
+      created_at: newTask.createdAt
     };
-    api.put(`/api/tarefas/${newTask.id}`, backendTask).catch(e => {
-      console.warn('[taskService] Erro ao enviar tarefa para o backend:', e);
-    });
+
+    const { error } = await supabase.from('tarefas').insert(dbPayload);
+    if (error) {
+      console.error('[taskService] Erro ao salvar tarefa no Supabase:', error);
+    }
 
     return newTask;
   },
 
-  updateTaskStatus(id: string, status: 'pending' | 'completed') {
-    const tasks = this.getTasks();
-    const updated = tasks.map(t => t.id === id ? { ...t, status } : t);
-    this.saveTasks(updated);
+  async updateTaskStatus(id: string, status: 'pending' | 'completed') {
+    const dbStatus = status === 'completed' ? 'done' : 'todo';
+    const { error } = await supabase
+      .from('tarefas')
+      .update({ status: dbStatus, completed_at: status === 'completed' ? new Date().toISOString() : null })
+      .eq('id', id);
 
-    const task = updated.find(t => t.id === id);
-    if (task) {
-      const backendTask = {
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        status: status === 'completed' ? 'done' : 'todo',
-        executionType: 'standard',
-        complexity: 'low',
-        priority: 'medium',
-        scheduledDate: new Date(task.createdAt).getTime()
-      };
-      api.put(`/api/tarefas/${task.id}`, backendTask).catch(e => {
-        console.warn('[taskService] Erro ao atualizar status da tarefa no backend:', e);
-      });
+    if (error) {
+      console.error('[taskService] Erro ao atualizar status da tarefa no Supabase:', error);
     }
   }
 };

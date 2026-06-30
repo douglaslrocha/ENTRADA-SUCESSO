@@ -1,10 +1,9 @@
 /**
  * Objectives Service
- * Abstração de API para o sistema de Objetivos, Metas, Projetos e Tarefas.
- * Gerencia a comunicação com o backend Fastify e fornece cache/fallback local no localStorage.
+ * Abstração de API para o sistema de Objetivos, Metas, Projetos e Tarefas com integração direta ao Supabase.
  */
 
-import { safeLocalStorage } from '../utils/storage';
+import { supabase, camelToSnake, snakeToCamel } from './supabaseClient';
 
 // ============================================
 // Tipos
@@ -117,40 +116,56 @@ export interface ObjectivesTree {
   tasks: Task[];
 }
 
-import { api } from './api';
-
-// ============================================
-// Config
-// ============================================
-
-const API_BASE = '/api';
-
-// ============================================
-// Serviço
-// ============================================
-
 export const objectivesService = {
   /**
-   * Carrega toda a árvore de objetivos, metas e tarefas diretamente da API do backend.
+   * Carrega toda a árvore de objetivos, metas e tarefas do Supabase.
    */
   async getObjectivesTree(): Promise<ObjectivesTree> {
-    const data = await api.get(`${API_BASE}/objetivos`);
+    const { data: objetivosData } = await supabase.from('objetivos').select('*');
+    const { data: metasData } = await supabase.from('metas').select('*');
+    const { data: tarefasData } = await supabase.from('tarefas').select('*');
+
     return {
-      objectives: data.objectives || [],
-      goals: data.goals || [],
+      objectives: (objetivosData || []).map(item => snakeToCamel(item)),
+      goals: (metasData || []).map(item => snakeToCamel(item)),
       projects: [],
-      tasks: data.tasks || []
+      tasks: (tarefasData || []).map(item => {
+        const mapped = snakeToCamel(item);
+        // Garante compatibilidade de tipos para campos JSON
+        if (typeof mapped.sensations === 'string') {
+          try { mapped.sensations = JSON.parse(mapped.sensations); } catch { mapped.sensations = []; }
+        }
+        if (typeof mapped.phenomena === 'string') {
+          try { mapped.phenomena = JSON.parse(mapped.phenomena); } catch { mapped.phenomena = []; }
+        }
+        if (typeof mapped.subtasks === 'string') {
+          try { mapped.subtasks = JSON.parse(mapped.subtasks); } catch { mapped.subtasks = []; }
+        }
+        return mapped;
+      })
     };
   },
 
   /**
-   * Sincronização em lote para envio offline-to-online
+   * Sincronização em lote
    */
   async syncTree(tree: ObjectivesTree): Promise<boolean> {
     try {
-      const data = await api.put(`${API_BASE}/objetivos/sync`, tree);
-      return !!data.success;
-    } catch {
+      if (tree.objectives?.length) {
+        const mappedObjs = tree.objectives.map(o => camelToSnake(o));
+        await supabase.from('objetivos').upsert(mappedObjs);
+      }
+      if (tree.goals?.length) {
+        const mappedGoals = tree.goals.map(g => camelToSnake(g));
+        await supabase.from('metas').upsert(mappedGoals);
+      }
+      if (tree.tasks?.length) {
+        const mappedTasks = tree.tasks.map(t => camelToSnake(t));
+        await supabase.from('tarefas').upsert(mappedTasks);
+      }
+      return true;
+    } catch (e) {
+      console.error('[ObjectivesService] Erro ao sincronizar árvore com Supabase:', e);
       return false;
     }
   },
@@ -159,43 +174,62 @@ export const objectivesService = {
    * Salva ou atualiza um objetivo
    */
   async saveObjective(id: string, objective: Partial<Objective>): Promise<Objective> {
-    const data = await api.put(`${API_BASE}/objetivos/${id}`, objective);
-    return data.objective;
+    const dbPayload = camelToSnake({ ...objective, id });
+    if (dbPayload.media) dbPayload.media = JSON.stringify(dbPayload.media);
+    if (dbPayload.kpis) dbPayload.kpis = JSON.stringify(dbPayload.kpis);
+    if (dbPayload.risks) dbPayload.risks = JSON.stringify(dbPayload.risks);
+    if (dbPayload.metas) dbPayload.metas = JSON.stringify(dbPayload.metas);
+
+    const { data, error } = await supabase
+      .from('objetivos')
+      .upsert(dbPayload)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return snakeToCamel(data);
   },
 
   /**
    * Remove um objetivo
    */
   async deleteObjective(id: string): Promise<boolean> {
-    const data = await api.delete(`${API_BASE}/objetivos/${id}`);
-    return !!data.success;
+    const { error } = await supabase.from('objetivos').delete().eq('id', id);
+    return !error;
   },
 
   /**
    * Salva ou atualiza uma meta
    */
   async saveGoal(id: string, goal: Partial<Goal>): Promise<Goal> {
-    const data = await api.put(`${API_BASE}/metas/${id}`, goal);
-    return data.goal;
+    const dbPayload = camelToSnake({ ...goal, id });
+    const { data, error } = await supabase
+      .from('metas')
+      .upsert(dbPayload)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return snakeToCamel(data);
   },
 
   /**
    * Remove uma meta
    */
   async deleteGoal(id: string): Promise<boolean> {
-    const data = await api.delete(`${API_BASE}/metas/${id}`);
-    return !!data.success;
+    const { error } = await supabase.from('metas').delete().eq('id', id);
+    return !error;
   },
 
   /**
-   * Salva ou atualiza um projeto (No-op)
+   * Salva ou atualiza um projeto (No-op para compatibilidade)
    */
   async saveProject(id: string, project: Partial<Project>): Promise<Project> {
     return { id, title: project.title || 'No-op' };
   },
 
   /**
-   * Remove um projeto (No-op)
+   * Remove um projeto
    */
   async deleteProject(id: string): Promise<boolean> {
     return true;
@@ -205,15 +239,36 @@ export const objectivesService = {
    * Salva ou atualiza uma tarefa
    */
   async saveTask(id: string, task: Partial<Task>): Promise<Task> {
-    const data = await api.put(`${API_BASE}/tarefas/${id}`, task);
-    return data.task;
+    const dbPayload = camelToSnake({ ...task, id });
+    
+    // Tratamento de tipos especiais do PostgreSQL / JSON
+    if (Array.isArray(dbPayload.subtasks)) dbPayload.subtasks = JSON.stringify(dbPayload.subtasks);
+    if (Array.isArray(dbPayload.sensations)) dbPayload.sensations = JSON.stringify(dbPayload.sensations);
+    if (Array.isArray(dbPayload.phenomena)) dbPayload.phenomena = JSON.stringify(dbPayload.phenomena);
+    if (Array.isArray(dbPayload.recurrence_days)) dbPayload.recurrence_days = JSON.stringify(dbPayload.recurrence_days);
+    if (Array.isArray(dbPayload.linked_document_ids)) dbPayload.linked_document_ids = JSON.stringify(dbPayload.linked_document_ids);
+
+    const { data, error } = await supabase
+      .from('tarefas')
+      .upsert(dbPayload)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    const mapped = snakeToCamel(data);
+    if (typeof mapped.subtasks === 'string') mapped.subtasks = JSON.parse(mapped.subtasks);
+    if (typeof mapped.sensations === 'string') mapped.sensations = JSON.parse(mapped.sensations);
+    if (typeof mapped.phenomena === 'string') mapped.phenomena = JSON.parse(mapped.phenomena);
+    
+    return mapped;
   },
 
   /**
    * Remove uma tarefa
    */
   async deleteTask(id: string): Promise<boolean> {
-    const data = await api.delete(`${API_BASE}/tarefas/${id}`);
-    return !!data.success;
+    const { error } = await supabase.from('tarefas').delete().eq('id', id);
+    return !error;
   }
 };

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Usar variáveis de ambiente do Vite se existirem, ou usar o fallback direto do self-hosted
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'http://supabasekong-x66wbwnbulrcp8shg16zcqra.187.127.3.42.sslip.io';
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://supabasekong-x66wbwnbulrcp8shg16zcqra.187.127.3.42.sslip.io';
 const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4MjE0Nzk2MCwiZXhwIjo0OTM3ODIxNTYwLCJyb2xlIjoiYW5vbiJ9.iwEj92dqiASmCTNp4L5_MinZObDPmFCfx_8FodKcnTI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

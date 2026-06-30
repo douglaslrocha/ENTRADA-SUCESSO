@@ -175,7 +175,20 @@ export const diaryService = {
       .single();
 
     if (error) throw error;
-    return snakeToCamel(data);
+    
+    const mapped = snakeToCamel(data);
+    const parseJsonFields = [
+      'categories', 'gallery', 'dreams', 'actions', 'habits', 'insights', 
+      'blocks', 'essentialActions', 'recurringActions', 'tomorrowActions', 
+      'posture', 'mental', 'emotion', 'energy', 'dayOpening', 'state', 
+      'guidance', 'daySynthesis', 'semanticEntities'
+    ];
+    parseJsonFields.forEach(field => {
+      if (typeof mapped[field] === 'string') {
+        try { mapped[field] = JSON.parse(mapped[field]); } catch { mapped[field] = field.endsWith('Opening') || field === 'state' || field === 'guidance' || field === 'daySynthesis' || field === 'semanticEntities' ? {} : []; }
+      }
+    });
+    return mapped;
   },
 
   /**

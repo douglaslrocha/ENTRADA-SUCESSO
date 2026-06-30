@@ -716,6 +716,17 @@ export const CortesPage: React.FC<CortesPageProps> = ({
     return () => window.removeEventListener('backgrounds-updated', handleUpdate);
   }, []);
 
+  useEffect(() => {
+    if (bgImages.length <= 1) {
+      setBgIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % bgImages.length);
+    }, 10000); // 10s rotation
+    return () => clearInterval(timer);
+  }, [bgImages.length]);
+
   // Estados para Expansão de Projeção
   const [multiPeriodGoals, setMultiPeriodGoals] = useState<{ [key: string]: number }>(() => {
     const saved = safeLocalStorage.getItem('financial_multi_period_goals');

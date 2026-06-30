@@ -89,7 +89,8 @@ async function runMigrations() {
   const tablesToPurge = [
     'tarefas', 'metas', 'objetivos', 'tasks', 'projects', 'goals', 'objectives',
     'diary_entries', 'pages', 'folders', 'workspaces',
-    'financial_transactions', 'financial_projections', 'financial_categories', 'financial_mural'
+    'financial_transactions', 'financial_projections', 'financial_categories', 'financial_mural',
+    'ai_cognitive_settings'
   ];
 
   for (const table of tablesToPurge) {

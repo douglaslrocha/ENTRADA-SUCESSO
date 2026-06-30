@@ -12,6 +12,8 @@ import { db as financeDb } from '../services/db'; // used for some hooks/org syn
 import { useOrganismSync } from '../hooks/useOrganismSync';
 import { energyCatalogService } from '../services/energyCatalogService';
 import { organismEventBus } from '../services/organismEventBus';
+import { diaryService, DiaryEntry } from '../services/diaryService';
+import { objectivesService } from '../services/objectivesService';
 
 // Since the objectives & tasks are fetched from the backend or local store,
 // let's integrate with the API or localStorage to load real data!
@@ -38,23 +40,6 @@ interface Task {
     sensations: string[];
     lucidity: number;
     phenomena: string[];
-  };
-}
-
-interface DiaryEntry {
-  id: string;
-  title: string;
-  date?: number;
-  createdAt?: number;
-  content?: string;
-  energy?: string[];
-  mental?: string[];
-  emotion?: string[];
-  posture?: string[];
-  dreams?: any[];
-  daySynthesis?: {
-    notes?: string;
-    vibeRating?: number;
   };
 }
 
@@ -265,7 +250,6 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
     haptics.mediumClick();
     setSavingEntryId(dId);
     try {
-      const userId = localStorage.getItem('userId') || 'default';
       const currentEntry = diaries.find(d => d.id === dId);
       if (!currentEntry) return;
 
@@ -279,29 +263,15 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
         posture: editingPostures[dId] !== undefined ? editingPostures[dId] : (currentEntry.posture || []),
       };
 
-      const res = await fetch(`/api/diary/${dId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId
-        },
-        body: JSON.stringify(payload)
-      });
+      await diaryService.saveDiary(dId, payload);
 
-      if (res.ok) {
-        setSaveSuccessId(dId);
-        setTimeout(() => setSaveSuccessId(null), 3000);
-        
-        // Refresh local memory and statistics
-        const checkRes = await fetch('/api/diary', {
-          headers: { 'x-user-id': userId }
-        });
-        if (checkRes.ok) {
-          const checkData = await checkRes.json();
-          if (checkData && checkData.entries) {
-            setDiaries(checkData.entries);
-          }
-        }
+      setSaveSuccessId(dId);
+      setTimeout(() => setSaveSuccessId(null), 3000);
+      
+      // Refresh local memory and statistics
+      const checkData = await diaryService.getDiaries({ limit: 100 });
+      if (checkData && checkData.entries) {
+        setDiaries(checkData.entries);
       }
     } catch (err) {
       console.error('Erro ao salvar diário:', err);
@@ -315,35 +285,24 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
     setIsLoading(true);
     try {
       // 1. Fetch Diaries
-      const userId = localStorage.getItem('userId') || 'default';
-      const response = await fetch('/api/diary', {
-        headers: { 'x-user-id': userId }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.entries) {
-          setDiaries(data.entries);
-          if (data.entries.length >= 2) {
-            setCompareDayA(data.entries[0].id);
-            setCompareDayB(data.entries[1].id);
-          } else if (data.entries.length === 1) {
-            setCompareDayA(data.entries[0].id);
-          }
+      const diaryData = await diaryService.getDiaries({ limit: 100 });
+      if (diaryData && diaryData.entries) {
+        setDiaries(diaryData.entries);
+        if (diaryData.entries.length >= 2) {
+          setCompareDayA(diaryData.entries[0].id);
+          setCompareDayB(diaryData.entries[1].id);
+        } else if (diaryData.entries.length === 1) {
+          setCompareDayA(diaryData.entries[0].id);
         }
       }
 
       // 2. Fetch Tasks (from Objectives system) to get energy-work records
-      const objectivesRes = await fetch('/api/objectives', {
-        headers: { 'x-user-id': userId }
-      });
-      if (objectivesRes.ok) {
-        const objData = await objectivesRes.json();
-        if (objData && objData.tasks) {
-          const finishedEnergyTasks = (objData.tasks as Task[]).filter(
-            t => t.executionType === 'energy-work' && t.status === 'completed'
-          );
-          setEnergyTasks(finishedEnergyTasks);
-        }
+      const objData = await objectivesService.getObjectivesTree();
+      if (objData && objData.tasks) {
+        const finishedEnergyTasks = (objData.tasks as Task[]).filter(
+          t => t.executionType === 'energy-work' && t.status === 'completed'
+        );
+        setEnergyTasks(finishedEnergyTasks);
       }
     } catch (error) {
       console.error('[AmparoPage] Erro ao carregar dados:', error);
@@ -364,9 +323,7 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
   const handleCreateQuickEV = async () => {
     haptics.mediumClick();
     try {
-      const userId = localStorage.getItem('userId') || 'default';
-      
-      const newEVTask: Partial<Task> = {
+      const newEVTask: Partial<any> = {
         id: 'ev_' + Date.now(),
         title: `Paradiretrize de Fatuística: ${evTechnique.toUpperCase()}`,
         status: 'completed',
@@ -389,19 +346,8 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
         }
       };
 
-      // 1. Put task
-      const res = await fetch(`/api/tasks/${newEVTask.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId
-        },
-        body: JSON.stringify(newEVTask)
-      });
-
-      if (!res.ok) {
-        throw new Error('Erro ao salvar o registro técnico de Fatuística');
-      }
+      // 1. Put task via objectivesService
+      await objectivesService.saveTask(newEVTask.id!, newEVTask);
 
       // 2. Dynamic Diary Linking
       let targetDiaryId = selectedDiaryId;
@@ -430,15 +376,8 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
             posture: ['Cosmoética Prática']
           };
 
-          const createRes = await fetch(`/api/diary/${newId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-id': userId
-            },
-            body: JSON.stringify(newDiary)
-          });
-          if (createRes.ok) {
+          const created = await diaryService.saveDiary(newId, newDiary);
+          if (created) {
             targetDiaryId = newId;
           }
         }
@@ -446,37 +385,23 @@ export default function AmparoPage({ onToggleSidebar, theme }: { onToggleSidebar
 
       if (targetDiaryId !== 'none' && targetDiaryId !== 'auto_today') {
         // Encontra o diário e une os dados
-        const getDiaryRes = await fetch(`/api/diary/${targetDiaryId}`, {
-          headers: { 'x-user-id': userId }
-        });
-        if (getDiaryRes.ok) {
-          const diaryData = await getDiaryRes.json();
-          if (diaryData && diaryData.entry) {
-            const entry = diaryData.entry;
-            
-            // Une os fenômenos (tags)
-            const nEnergies = Array.from(new Set([...(entry.energy || []), ...evSensations]));
-            const nMental = Array.from(new Set([...(entry.mental || []), 'Lucidez Existencial']));
-            const nPosture = Array.from(new Set([...(entry.posture || []), ...evPhenomena]));
-            
-            const additionalLog = `\n\n--- [Fatuística & Fenômenos Vinculados — ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}] ---\nTécnica: ${evTechnique.toUpperCase()}\nVolume VBE: ${evIntensity}/10 | Hiperlucidez: ${evLucidity}/5\nSinaléticas: ${evSensations.join(', ')}\nFenômenos: ${evPhenomena.join(', ')}\nRelato / Cognições: ${evNotes || 'Sem relato adicional.'}`;
-            const nContent = (entry.content || '') + additionalLog;
+        const entry = await diaryService.getDiaryById(targetDiaryId);
+        if (entry) {
+          // Une os fenômenos (tags)
+          const nEnergies = Array.from(new Set([...(entry.energy || []), ...evSensations]));
+          const nMental = Array.from(new Set([...(entry.mental || []), 'Lucidez Existencial']));
+          const nPosture = Array.from(new Set([...(entry.posture || []), ...evPhenomena]));
+          
+          const additionalLog = `\n\n--- [Fatuística & Fenômenos Vinculados — ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}] ---\nTécnica: ${evTechnique.toUpperCase()}\nVolume VBE: ${evIntensity}/10 | Hiperlucidez: ${evLucidity}/5\nSinaléticas: ${evSensations.join(', ')}\nFenômenos: ${evPhenomena.join(', ')}\nRelato / Cognições: ${evNotes || 'Sem relato adicional.'}`;
+          const nContent = (entry.content || '') + additionalLog;
 
-            await fetch(`/api/diary/${targetDiaryId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': userId
-              },
-              body: JSON.stringify({
-                ...entry,
-                energy: nEnergies,
-                mental: nMental,
-                posture: nPosture,
-                content: nContent
-              })
-            });
-          }
+          await diaryService.saveDiary(targetDiaryId, {
+            ...entry,
+            energy: nEnergies,
+            mental: nMental,
+            posture: nPosture,
+            content: nContent
+          });
         }
       }
 

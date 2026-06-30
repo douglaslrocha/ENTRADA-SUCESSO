@@ -23,7 +23,10 @@ export type OrganismEventType =
   | 'cognitiveReady'
   | 'managerChanged'
   | 'energyCatalogUpdated'
-  | 'backendError';
+  | 'backendError'
+  | 'identityUpdated'
+  | 'amparadoraChatUpdated'
+  | 'presenceUpdated';
 
 type EventCallback = (data?: any) => void;
 

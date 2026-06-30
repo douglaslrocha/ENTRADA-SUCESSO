@@ -3,6 +3,7 @@ import { GlobalMemoryService, Conversation } from '../services/GlobalMemoryServi
 import { haptics } from '../services/HapticService';
 import { orchestrator } from '../core/orchestrator';
 import { cognitiveSyncPlugin } from '../plugins/CognitiveSyncPlugin';
+import { organismEventBus } from '../services/organismEventBus';
 
 export function useAmparadora() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -13,22 +14,41 @@ export function useAmparadora() {
     return cognitiveSyncPlugin.getVersion().version;
   });
 
-  // Load initial conversations
+  // Load initial conversations, sync with Supabase, and subscribe to real-time events
   useEffect(() => {
-    const all = GlobalMemoryService.getConversations();
-    setConversations(all);
+    // 1. Carrega local síncrono para inicialização instantânea
+    const local = GlobalMemoryService.getConversations();
+    setConversations(local);
     
     let activeId = GlobalMemoryService.getActiveConversationId();
-    // If we have an activeId but it's not in the list, clear it
-    if (activeId && !all.find(c => c.id === activeId)) {
+    if (activeId && !local.find(c => c.id === activeId)) {
       activeId = null;
     }
-    // If no activeId and we have conversations, pick the first one
-    if (!activeId && all.length > 0) {
-      activeId = all[0].id;
+    if (!activeId && local.length > 0) {
+      activeId = local[0].id;
     }
-    
     setActiveConversationId(activeId);
+
+    // 2. Sincroniza em background com o Supabase
+    GlobalMemoryService.syncWithBackend().then(remote => {
+      setConversations(remote);
+      let newActiveId = GlobalMemoryService.getActiveConversationId();
+      if (newActiveId && remote.find(c => c.id === newActiveId)) {
+        setActiveConversationId(newActiveId);
+      }
+    });
+
+    // 3. Inscreve-se para atualizações em tempo real recebidas do Realtime
+    const unsub = organismEventBus.subscribe('amparadoraChatUpdated', () => {
+      const updated = GlobalMemoryService.getConversations();
+      setConversations(updated);
+      let currentActiveId = GlobalMemoryService.getActiveConversationId();
+      if (currentActiveId && updated.find(c => c.id === currentActiveId)) {
+        setActiveConversationId(currentActiveId);
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);

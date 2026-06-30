@@ -1,4 +1,5 @@
 import { safeLocalStorage } from '../utils/storage';
+import { supabase } from './supabaseClient';
 
 export type PageType = 'diary' | 'finance' | 'objectives' | 'dashboard' | 'amparadora';
 
@@ -49,7 +50,7 @@ export const backgroundService = {
     }
   },
 
-  setImages(page: PageType, images: string[]) {
+  async setImages(page: PageType, images: string[]) {
     const saved = safeLocalStorage.getItem(STORAGE_KEY);
     let data: any = {};
     
@@ -62,11 +63,73 @@ export const backgroundService = {
     data[page] = images;
     safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     
-    // Dispatch custom event to notify listeners
+    // Dispatch custom event to notify local listeners
     window.dispatchEvent(new CustomEvent('backgrounds-updated', { detail: { page } }));
+    
+    // Sync to Supabase in background
+    try {
+      const upsertData = {
+        user_id: 'default',
+        [page]: images,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await supabase
+        .from('experience_backgrounds')
+        .upsert(upsertData, { onConflict: 'user_id' });
+        
+      if (error) throw error;
+      console.log(`[backgroundService] Backgrounds updated in Supabase for page: ${page}`);
+    } catch (e) {
+      console.warn('[backgroundService] Error saving backgrounds to Supabase:', e);
+    }
   },
 
-  reset(page: PageType) {
-    this.setImages(page, DEFAULT_IMAGES[page]);
+  async syncWithBackend() {
+    try {
+      const { data, error } = await supabase
+        .from('experience_backgrounds')
+        .select('*')
+        .eq('user_id', 'default')
+        .maybeSingle();
+        
+      if (error) throw error;
+      
+      if (data) {
+        const localData: Record<PageType, string[]> = {
+          amparadora: data.amparadora || DEFAULT_IMAGES.amparadora,
+          dashboard: data.dashboard || DEFAULT_IMAGES.dashboard,
+          diary: data.diary || DEFAULT_IMAGES.diary,
+          finance: data.finance || DEFAULT_IMAGES.finance,
+          objectives: data.objectives || DEFAULT_IMAGES.objectives,
+        };
+        
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+        
+        // Dispatch events to reload current page UIs
+        (Object.keys(localData) as PageType[]).forEach(page => {
+          window.dispatchEvent(new CustomEvent('backgrounds-updated', { detail: { page } }));
+        });
+        
+        console.log('[backgroundService] Backgrounds successfully synchronized from Supabase.');
+      } else {
+        // Seed default images to server
+        const defaultRecord = {
+          user_id: 'default',
+          amparadora: DEFAULT_IMAGES.amparadora,
+          dashboard: DEFAULT_IMAGES.dashboard,
+          diary: DEFAULT_IMAGES.diary,
+          finance: DEFAULT_IMAGES.finance,
+          objectives: DEFAULT_IMAGES.objectives,
+        };
+        await supabase.from('experience_backgrounds').insert(defaultRecord);
+      }
+    } catch (e) {
+      console.warn('[backgroundService] Error syncing backgrounds from Supabase:', e);
+    }
+  },
+
+  async reset(page: PageType) {
+    await this.setImages(page, DEFAULT_IMAGES[page]);
   }
 };

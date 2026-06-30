@@ -392,7 +392,9 @@ export const MuralSucessoPage: React.FC<MuralSucessoPageProps> = ({ onBack, onTo
   // Carousel Ref for Mural
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Load data on mount
+  const syncKey = useOrganismSync(['transactionUpdated']);
+
+  // Load data on mount or when syncKey changes
   useEffect(() => {
     const data = db.getMuralData();
     setNetWorth(data.netWorth);
@@ -413,7 +415,7 @@ export const MuralSucessoPage: React.FC<MuralSucessoPageProps> = ({ onBack, onTo
     })));
     setGlobalVaultLinks(data.links || []);
     setIsLoaded(true);
-  }, []);
+  }, [syncKey]);
 
   useEffect(() => {
     if (showAssetModal) {
@@ -433,8 +435,6 @@ export const MuralSucessoPage: React.FC<MuralSucessoPageProps> = ({ onBack, onTo
       setCurrentHeaderImageIndex(0);
     }
   }, [showAssetModal, selectedAsset]);
-
-  const syncKey = useOrganismSync();
   const totalAssetsValue = assets.reduce((acc, a) => acc + a.value, 0);
   const currentCash = React.useMemo(() => {
     const transactions = db.getTransactions();

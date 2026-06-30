@@ -5,6 +5,7 @@ import { organismEventBus } from './organismEventBus';
 import { financialEpisodeEngine } from '../engines/financialEpisodeEngine';
 import { financialService } from './financialService';
 import { api } from './api';
+import { supabase } from './supabaseClient';
 
 class Database {
   private categories: Category[] = [];
@@ -279,7 +280,14 @@ class Database {
     this.save();
     organismEventBus.emit('systemReset');
 
-    // Sincroniza exclusão no backend
+    // Sincroniza exclusão no Supabase diretamente
+    supabase.from('financial_transactions').delete().neq('id', '').then(() => {
+      supabase.from('financial_categories').delete().neq('id', '').then(() => {});
+    });
+    supabase.from('financial_projections').delete().neq('id', 0).then(() => {});
+    supabase.from('financial_mural').delete().eq('user_id', 'default').then(() => {});
+
+    // Sincroniza exclusão no backend antigo para retrocompatibilidade
     api.delete('/api/system/reset/financial')
       .catch(e => console.warn('[Database] Erro ao resetar financeiro no backend:', e));
   }
@@ -308,7 +316,13 @@ class Database {
     this.save();
     organismEventBus.emit('systemReset');
 
-    // Sincroniza exclusão no backend
+    // Sincroniza exclusão no Supabase diretamente
+    supabase.from('financial_transactions').delete().neq('id', '').then(() => {});
+    supabase.from('financial_projections').delete().neq('id', 0).then(() => {});
+    const clearedMural = { netWorth: { current_cash: 0.00 }, assets: [], vault: [], links: [] };
+    financialService.saveMural(clearedMural).catch(e => console.warn(e));
+
+    // Sincroniza exclusão no backend antigo para retrocompatibilidade
     api.delete('/api/system/reset/financial')
       .catch(e => console.warn('[Database] Erro ao resetar financeiro no backend:', e));
   }

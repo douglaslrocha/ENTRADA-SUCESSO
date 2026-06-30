@@ -1,3 +1,6 @@
+import { safeLocalStorage } from '../utils/storage';
+import { supabase } from './supabaseClient';
+import { organismEventBus } from './organismEventBus';
 
 export interface Company {
   id: string;
@@ -73,12 +76,12 @@ export interface Presence {
   visitedCountries?: string;
   
   // Cognitive Influence Structure (MÓDULO: PRESENÇAS — MOTOR DE INFLUÊNCIA EXISTENCIAL)
-  influencia?: string; // quais áreas ativa
-  acionar_quando?: string; // situações específicas
-  dna?: string; // princípios centrais
-  impacto?: string; // como altera a vida do usuário
-  alerta?: string; // traços de risco de absorção
-  peso?: number; // importância subjetiva (0-10)
+  influencia?: string; 
+  acionar_quando?: string; 
+  dna?: string; 
+  impacto?: string; 
+  alerta?: string; 
+  peso?: number; 
   
   secondaryImages?: string[];
   mainVideos?: string[]; 
@@ -110,7 +113,7 @@ export interface Presence {
   livingContent?: ReferenceContent[];
   associatedReferences?: AssociateReference[];
   freeNotes?: string;
-
+  
   role?: string;
   bio?: string;
   images?: string[];
@@ -119,7 +122,7 @@ export interface Presence {
   createdAt?: string;
 }
 
-const presences: Presence[] = [
+const DEFAULT_PRESENCES: Presence[] = [
   {
     id: '1',
     name: 'Dr. Andrew Huberman',
@@ -189,6 +192,7 @@ const presences: Presence[] = [
     country: 'USA',
     age: '50',
     profession: 'Investidor & Filósofo Moderno',
+    visitedCountries: 'Brasil, Japão, Alemanha, Reino Unido',
     influencia: 'Independência material, minimalismo existencial, tranquilidade interior, clareza em julgamentos complexos.',
     acionar_quando: 'Crises existenciais, ruído mental de reputações, dúvidas sobre alavancagem profissional ou ansiedade de status.',
     dna: 'Soberania individual extrema, sabedoria estoica desapegada e predileção por entender primeiros princípios.',
@@ -206,7 +210,7 @@ const presences: Presence[] = [
       { id: 't3', label: 'Sabedoria Estóica', image: 'https://images.unsplash.com/photo-1513506859357-191942a63273?w=200' }
     ],
     quotes: [
-      { id: 'q2', text: 'Fique rico sem ter sorte.', context: 'The Almanack of Naval Ravikant' }
+      { id: 'q2', text: 'Fique rico sem ter lucky.', context: 'The Almanack of Naval Ravikant' }
     ],
     connections: [
       { id: 'c3', type: 'Instagram', value: '@naval' }
@@ -245,25 +249,254 @@ const presences: Presence[] = [
   }
 ];
 
-let localPresences = [...presences];
+const STORAGE_KEY = 'humanity_presences';
+
+let localPresences: Presence[] = [];
+
+try {
+  const saved = safeLocalStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    localPresences = JSON.parse(saved);
+  } else {
+    localPresences = [...DEFAULT_PRESENCES];
+  }
+} catch {
+  localPresences = [...DEFAULT_PRESENCES];
+}
 
 export const presenceService = {
   getPresences: () => localPresences,
+  
   getPresence: (id: string) => localPresences.find(p => p.id === id),
-  addPresence: (presence: Omit<Presence, 'id'>) => {
-    const newPresence = {
+  
+  async addPresence(presence: Omit<Presence, 'id'>) {
+    const newPresence: Presence = {
       ...presence,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString()
-    } as Presence;
+    };
     localPresences = [newPresence, ...localPresences];
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(localPresences));
+    organismEventBus.emit('presenceUpdated');
+    
+    try {
+      const { error } = await supabase
+        .from('presences')
+        .insert({
+          id: newPresence.id,
+          user_id: 'default',
+          name: newPresence.name,
+          photo: newPresence.photo,
+          city: newPresence.city || '',
+          country: newPresence.country || '',
+          age: newPresence.age || '',
+          profession: newPresence.profession || '',
+          visited_countries: newPresence.visitedCountries || '',
+          influencia: newPresence.influencia || '',
+          acionar_quando: newPresence.acionar_quando || '',
+          dna: newPresence.dna || '',
+          impacto: newPresence.impacto || '',
+          alerta: newPresence.alerta || '',
+          peso: newPresence.peso || 0.0,
+          secondary_images: newPresence.secondaryImages || [],
+          main_videos: newPresence.mainVideos || [],
+          companies: newPresence.companies || [],
+          projects: newPresence.projects || [],
+          connections: newPresence.connections || [],
+          essentials: newPresence.essentials || {},
+          characteristics: newPresence.characteristics || [],
+          quotes: newPresence.quotes || [],
+          sensations: newPresence.sensations || [],
+          human_notes: newPresence.humanNotes || {},
+          living_gallery: newPresence.livingGallery || [],
+          living_content: newPresence.livingContent || [],
+          associated_references: newPresence.associatedReferences || [],
+          free_notes: newPresence.freeNotes || '',
+          role: newPresence.role || '',
+          bio: newPresence.bio || '',
+          images: newPresence.images || [],
+          thoughts: newPresence.thoughts || [],
+          references: newPresence.references || []
+        });
+        
+      if (error) throw error;
+      console.log('[presenceService] Presence added to Supabase:', newPresence.id);
+    } catch (e) {
+      console.warn('[presenceService] Error saving added presence to Supabase:', e);
+    }
     return newPresence;
   },
-  updatePresence: (id: string, updates: Partial<Presence>) => {
+  
+  async updatePresence(id: string, updates: Partial<Presence>) {
     localPresences = localPresences.map(p => p.id === id ? { ...p, ...updates } : p);
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(localPresences));
+    organismEventBus.emit('presenceUpdated');
+    
+    try {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.photo !== undefined) dbUpdates.photo = updates.photo;
+      if (updates.city !== undefined) dbUpdates.city = updates.city;
+      if (updates.country !== undefined) dbUpdates.country = updates.country;
+      if (updates.age !== undefined) dbUpdates.age = updates.age;
+      if (updates.profession !== undefined) dbUpdates.profession = updates.profession;
+      if (updates.visitedCountries !== undefined) dbUpdates.visited_countries = updates.visitedCountries;
+      if (updates.influencia !== undefined) dbUpdates.influencia = updates.influencia;
+      if (updates.acionar_quando !== undefined) dbUpdates.acionar_quando = updates.acionar_quando;
+      if (updates.dna !== undefined) dbUpdates.dna = updates.dna;
+      if (updates.impacto !== undefined) dbUpdates.impacto = updates.impacto;
+      if (updates.alerta !== undefined) dbUpdates.alerta = updates.alerta;
+      if (updates.peso !== undefined) dbUpdates.peso = updates.peso;
+      if (updates.secondaryImages !== undefined) dbUpdates.secondary_images = updates.secondaryImages;
+      if (updates.mainVideos !== undefined) dbUpdates.main_videos = updates.mainVideos;
+      if (updates.companies !== undefined) dbUpdates.companies = updates.companies;
+      if (updates.projects !== undefined) dbUpdates.projects = updates.projects;
+      if (updates.connections !== undefined) dbUpdates.connections = updates.connections;
+      if (updates.essentials !== undefined) dbUpdates.essentials = updates.essentials;
+      if (updates.characteristics !== undefined) dbUpdates.characteristics = updates.characteristics;
+      if (updates.quotes !== undefined) dbUpdates.quotes = updates.quotes;
+      if (updates.sensations !== undefined) dbUpdates.sensations = updates.sensations;
+      if (updates.humanNotes !== undefined) dbUpdates.human_notes = updates.humanNotes;
+      if (updates.livingGallery !== undefined) dbUpdates.living_gallery = updates.livingGallery;
+      if (updates.livingContent !== undefined) dbUpdates.living_content = updates.livingContent;
+      if (updates.associatedReferences !== undefined) dbUpdates.associated_references = updates.associatedReferences;
+      if (updates.freeNotes !== undefined) dbUpdates.free_notes = updates.freeNotes;
+      if (updates.role !== undefined) dbUpdates.role = updates.role;
+      if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+      if (updates.images !== undefined) dbUpdates.images = updates.images;
+      if (updates.thoughts !== undefined) dbUpdates.thoughts = updates.thoughts;
+      if (updates.references !== undefined) dbUpdates.references = updates.references;
+      
+      dbUpdates.updated_at = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('presences')
+        .update(dbUpdates)
+        .eq('id', id);
+        
+      if (error) throw error;
+      console.log('[presenceService] Presence updated on Supabase:', id);
+    } catch (e) {
+      console.warn('[presenceService] Error updating presence on Supabase:', e);
+    }
+    
     return localPresences.find(p => p.id === id);
   },
-  deletePresence: (id: string) => {
-    localPresences = localPresences.filter(p => p.id === id ? false : true);
+  
+  async deletePresence(id: string) {
+    localPresences = localPresences.filter(p => p.id !== id);
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(localPresences));
+    organismEventBus.emit('presenceUpdated');
+    
+    try {
+      const { error } = await supabase
+        .from('presences')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      console.log('[presenceService] Presence deleted from Supabase:', id);
+    } catch (e) {
+      console.warn('[presenceService] Error deleting presence from Supabase:', e);
+    }
+  },
+
+  async syncWithBackend() {
+    try {
+      const { data, error } = await supabase
+        .from('presences')
+        .select('*')
+        .eq('user_id', 'default')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const mapped: Presence[] = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          photo: row.photo,
+          city: row.city || '',
+          country: row.country || '',
+          age: row.age || '',
+          profession: row.profession || '',
+          visitedCountries: row.visited_countries || '',
+          influencia: row.influencia || '',
+          acionar_quando: row.acionar_quando || '',
+          dna: row.dna || '',
+          impacto: row.impacto || '',
+          alerta: row.alerta || '',
+          peso: row.peso ? Number(row.peso) : 0,
+          secondaryImages: row.secondary_images || [],
+          mainVideos: row.main_videos || [],
+          companies: row.companies || [],
+          projects: row.projects || [],
+          connections: row.connections || [],
+          essentials: row.essentials || {},
+          characteristics: row.characteristics || [],
+          quotes: row.quotes || [],
+          sensations: row.sensations || [],
+          humanNotes: row.human_notes || {},
+          livingGallery: row.living_gallery || [],
+          livingContent: row.living_content || [],
+          associatedReferences: row.associated_references || [],
+          freeNotes: row.free_notes || '',
+          role: row.role || '',
+          bio: row.bio || '',
+          images: row.images || [],
+          thoughts: row.thoughts || [],
+          references: row.references || []
+        }));
+        
+        localPresences = mapped;
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(localPresences));
+        organismEventBus.emit('presenceUpdated');
+        console.log('[presenceService] Presences synchronized from Supabase.');
+      } else {
+        console.log('[presenceService] Supabase presences empty, seeding defaults...');
+        for (const p of DEFAULT_PRESENCES) {
+          await supabase
+            .from('presences')
+            .insert({
+              id: p.id,
+              user_id: 'default',
+              name: p.name,
+              photo: p.photo,
+              city: p.city || '',
+              country: p.country || '',
+              age: p.age || '',
+              profession: p.profession || '',
+              visited_countries: p.visitedCountries || '',
+              influencia: p.influencia || '',
+              acionar_quando: p.acionar_quando || '',
+              dna: p.dna || '',
+              impacto: p.impacto || '',
+              alerta: p.alerta || '',
+              peso: p.peso || 0.0,
+              secondary_images: p.secondaryImages || [],
+              main_videos: p.mainVideos || [],
+              companies: p.companies || [],
+              projects: p.projects || [],
+              connections: p.connections || [],
+              essentials: p.essentials || {},
+              characteristics: p.characteristics || [],
+              quotes: p.quotes || [],
+              sensations: p.sensations || [],
+              human_notes: p.humanNotes || {},
+              living_gallery: p.livingGallery || [],
+              living_content: p.livingContent || [],
+              associated_references: p.associatedReferences || [],
+              free_notes: p.freeNotes || '',
+              role: p.role || '',
+              bio: p.bio || '',
+              images: p.images || [],
+              thoughts: p.thoughts || [],
+              references: p.references || []
+            });
+        }
+      }
+    } catch (e) {
+      console.warn('[presenceService] Error syncing presences from Supabase:', e);
+    }
   }
 };

@@ -34,6 +34,7 @@ import { notebookManager } from '../../../core/notebookContext';
 import { criticalSecurityService } from '../../../services/criticalSecurityService';
 import { haptics } from '../../../services/HapticService';
 import { organismEventBus } from '../../../services/organismEventBus';
+import { supabase } from '../../../services/supabaseClient';
 
 interface ToastState {
   id: string;
@@ -121,6 +122,15 @@ export const SystemReconstruction: React.FC = () => {
     // Reset indicators
     financialObservers.invalidate();
     financialObservers.rebuild();
+    try {
+      await Promise.all([
+        supabase.from('financial_transactions').delete().eq('user_id', 'default'),
+        supabase.from('financial_categories').delete().eq('user_id', 'default'),
+        supabase.from('financial_projections').delete().eq('user_id', 'default')
+      ]);
+    } catch (err) {
+      console.error('[SystemReconstruction] Error clearing finance in Supabase:', err);
+    }
   };
 
   // Module 2: Amparadora
@@ -149,6 +159,11 @@ export const SystemReconstruction: React.FC = () => {
     existentialCoreEngine.invalidate();
     existentialVectorsEngine.invalidate();
     organismEventBus.emit('cognitiveChanged');
+    try {
+      await supabase.from('amparadora_chats').delete().eq('user_id', 'default');
+    } catch (err) {
+      console.error('[SystemReconstruction] Error clearing amparadora chats in Supabase:', err);
+    }
   };
 
   // Module 3: Objetivos
@@ -162,6 +177,15 @@ export const SystemReconstruction: React.FC = () => {
   const handleResetObjectivesText = async () => {
     fakeDB.resetObjectives();
     localStorage.removeItem('objectives_order');
+    try {
+      await Promise.all([
+        supabase.from('tarefas').delete().eq('user_id', 'default'),
+        supabase.from('metas').delete().eq('user_id', 'default'),
+        supabase.from('objetivos').delete().eq('user_id', 'default')
+      ]);
+    } catch (err) {
+      console.error('[SystemReconstruction] Error clearing objectives in Supabase:', err);
+    }
   };
 
   // Module 4: Diário
@@ -175,6 +199,11 @@ export const SystemReconstruction: React.FC = () => {
   const handleResetDiariesText = async () => {
     fakeDB.resetDiaries();
     localStorage.removeItem('diary_entries');
+    try {
+      await supabase.from('diary_entries').delete().eq('user_id', 'default');
+    } catch (err) {
+      console.error('[SystemReconstruction] Error clearing diary entries in Supabase:', err);
+    }
   };
 
   // Module 5: Workspaces
@@ -187,6 +216,15 @@ export const SystemReconstruction: React.FC = () => {
   const handleResetWorkspacesText = async () => {
     fakeDB.resetWorkspaces();
     localStorage.removeItem('personal_os_documents');
+    try {
+      await Promise.all([
+        supabase.from('pages').delete().eq('user_id', 'default'),
+        supabase.from('folders').delete().eq('user_id', 'default'),
+        supabase.from('workspaces').delete().eq('user_id', 'default')
+      ]);
+    } catch (err) {
+      console.error('[SystemReconstruction] Error clearing workspaces in Supabase:', err);
+    }
   };
 
   // Module 6: Notebook
@@ -212,6 +250,11 @@ export const SystemReconstruction: React.FC = () => {
 
   const handleResetAssetsText = async () => {
     db.resetAssetsOnly();
+    try {
+      await supabase.from('financial_mural').upsert({ user_id: 'default', assets: '[]' });
+    } catch (err) {
+      console.error('[SystemReconstruction] Error resetting assets in Supabase:', err);
+    }
   };
 
   // Module 8: Links
@@ -223,6 +266,11 @@ export const SystemReconstruction: React.FC = () => {
 
   const handleResetLinksText = async () => {
     db.resetLinksOnly();
+    try {
+      await supabase.from('financial_mural').upsert({ user_id: 'default', links: '[]' });
+    } catch (err) {
+      console.error('[SystemReconstruction] Error resetting links in Supabase:', err);
+    }
   };
 
   // Module 9: Vault
@@ -238,6 +286,11 @@ export const SystemReconstruction: React.FC = () => {
 
   const handleResetVaultText = async () => {
     db.resetVaultOnly();
+    try {
+      await supabase.from('financial_mural').upsert({ user_id: 'default', vault: '[]' });
+    } catch (err) {
+      console.error('[SystemReconstruction] Error resetting vault in Supabase:', err);
+    }
   };
 
   // Module 11: Desk Board de Vida / Dashboard
@@ -261,6 +314,33 @@ export const SystemReconstruction: React.FC = () => {
     db.resetToFirstInstallation();
     fakeDB.resetDB();
     notebookManager.clearContext();
+    
+    try {
+      await Promise.all([
+        supabase.from('amparadora_chats').delete().eq('user_id', 'default'),
+        supabase.from('energy_work_catalogs').delete().eq('user_id', 'default'),
+        supabase.from('pages').delete().eq('user_id', 'default'),
+        supabase.from('folders').delete().eq('user_id', 'default'),
+        supabase.from('workspaces').delete().eq('user_id', 'default'),
+        supabase.from('financial_mural').delete().eq('user_id', 'default'),
+        supabase.from('financial_projections').delete().eq('user_id', 'default'),
+        supabase.from('financial_transactions').delete().eq('user_id', 'default'),
+        supabase.from('financial_categories').delete().eq('user_id', 'default'),
+        supabase.from('diary_entries').delete().eq('user_id', 'default'),
+        supabase.from('tarefas').delete().eq('user_id', 'default'),
+        supabase.from('metas').delete().eq('user_id', 'default'),
+        supabase.from('objetivos').delete().eq('user_id', 'default'),
+        supabase.from('identity_media').delete().eq('user_id', 'default'),
+        supabase.from('identity_answers').delete().eq('user_id', 'default'),
+        supabase.from('experience_backgrounds').delete().eq('user_id', 'default'),
+        supabase.from('ai_cognitive_settings').delete().eq('user_id', 'default'),
+        supabase.from('presences').delete().eq('user_id', 'default'),
+        supabase.from('user_profile').delete().eq('user_id', 'default'),
+      ]);
+      console.log('[SystemReconstruction] Absolute Reset: All Supabase tables wiped.');
+    } catch (err) {
+      console.error('[SystemReconstruction] Absolute Reset: Supabase wipe failed:', err);
+    }
     
     const keysToClear = [
       'global_cognitive_finance_cache',

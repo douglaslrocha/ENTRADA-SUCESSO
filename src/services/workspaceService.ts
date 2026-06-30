@@ -36,6 +36,51 @@ export const workspaceService = {
    */
   async syncWorkspaces(payload: { workspaces: Workspace[] }): Promise<{ success: boolean }> {
     try {
+      // 1. Coleta todos os IDs ativos do payload local
+      const wsIds: string[] = [];
+      const folderIds: string[] = [];
+      const pageIds: string[] = [];
+
+      for (const ws of payload.workspaces) {
+        wsIds.push(ws.id);
+        if (ws.folders) {
+          for (const folder of ws.folders) {
+            folderIds.push(folder.id);
+            if (folder.pages) {
+              for (const page of folder.pages) {
+                pageIds.push(page.id);
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Busca IDs existentes no Supabase para identificar exclusões
+      const { data: dbWorkspaces } = await supabase.from('workspaces').select('id').eq('user_id', 'default');
+      const { data: dbFolders } = await supabase.from('folders').select('id').eq('user_id', 'default');
+      const { data: dbPages } = await supabase.from('pages').select('id').eq('user_id', 'default');
+
+      const dbWsIds = (dbWorkspaces || []).map(w => w.id);
+      const dbFolderIds = (dbFolders || []).map(f => f.id);
+      const dbPageIds = (dbPages || []).map(p => p.id);
+
+      // Filtra o que deve ser removido
+      const wsToDelete = dbWsIds.filter(id => !wsIds.includes(id));
+      const foldersToDelete = dbFolderIds.filter(id => !folderIds.includes(id));
+      const pagesToDelete = dbPageIds.filter(id => !pageIds.includes(id));
+
+      // 3. Executa exclusões no Supabase (primeiro páginas, depois pastas, depois workspaces)
+      if (pagesToDelete.length > 0) {
+        await supabase.from('pages').delete().in('id', pagesToDelete);
+      }
+      if (foldersToDelete.length > 0) {
+        await supabase.from('folders').delete().in('id', foldersToDelete);
+      }
+      if (wsToDelete.length > 0) {
+        await supabase.from('workspaces').delete().in('id', wsToDelete);
+      }
+
+      // 4. Salva ou atualiza a estrutura atual
       for (const ws of payload.workspaces) {
         const wsPayload = { ...ws };
         delete wsPayload.folders;

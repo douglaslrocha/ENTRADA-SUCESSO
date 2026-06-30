@@ -1,4 +1,4 @@
-import { api } from './api';
+import { supabase } from './supabaseClient';
 import { organismEventBus } from './organismEventBus';
 
 export const DEFAULT_SENSATIONS = [
@@ -37,17 +37,32 @@ export interface EnergyCatalogData {
 
 class EnergyCatalogService {
   /**
-   * Obtém a lista unificada de bioenergias da VPS
+   * Obtém a lista unificada de bioenergias do Supabase
    * Se não houver dados, inicializa com os valores padrão.
    */
   async getCatalog(): Promise<EnergyCatalogData> {
     try {
-      const data = await api.get<EnergyCatalogData>('/api/energy-work/catalog');
-      
+      const { data, error } = await supabase
+        .from('energy_work_catalogs')
+        .select('*')
+        .eq('user_id', 'default');
+
+      if (error) throw error;
+
+      const catalogs: Record<string, string[]> = {
+        sensations: [],
+        phenomena: [],
+        fatuistica: []
+      };
+
+      (data || []).forEach(row => {
+        catalogs[row.catalog_type] = Array.isArray(row.items) ? row.items : JSON.parse(row.items || '[]');
+      });
+
       // Valida e aplica fallbacks se vazios
-      const sensations = data.sensations && data.sensations.length > 0 ? data.sensations : this.getLocalFallback('sensations', DEFAULT_SENSATIONS);
-      const phenomena = data.phenomena && data.phenomena.length > 0 ? data.phenomena : this.getLocalFallback('phenomena', DEFAULT_PHENOMENA);
-      const fatuistica = data.fatuistica && data.fatuistica.length > 0 ? data.fatuistica : this.getLocalFallback('fatuistica', DEFAULT_FATUISTICA_LABELS);
+      const sensations = catalogs.sensations && catalogs.sensations.length > 0 ? catalogs.sensations : this.getLocalFallback('sensations', DEFAULT_SENSATIONS);
+      const phenomena = catalogs.phenomena && catalogs.phenomena.length > 0 ? catalogs.phenomena : this.getLocalFallback('phenomena', DEFAULT_PHENOMENA);
+      const fatuistica = catalogs.fatuistica && catalogs.fatuistica.length > 0 ? catalogs.fatuistica : this.getLocalFallback('fatuistica', DEFAULT_FATUISTICA_LABELS);
 
       // Atualiza o localstorage para manter sincronia offline/rápida
       localStorage.setItem('energy_work_sensations', JSON.stringify(sensations));
@@ -56,7 +71,7 @@ class EnergyCatalogService {
 
       return { sensations, phenomena, fatuistica };
     } catch (err) {
-      console.warn('[EnergyCatalogService] Falha ao obter catálogo da VPS, usando fallback local...', err);
+      console.warn('[EnergyCatalogService] Falha ao obter catálogo do Supabase, usando fallback local...', err);
       return {
         sensations: this.getLocalFallback('sensations', DEFAULT_SENSATIONS),
         phenomena: this.getLocalFallback('phenomena', DEFAULT_PHENOMENA),
@@ -66,25 +81,31 @@ class EnergyCatalogService {
   }
 
   /**
-   * Salva uma lista específica de bioenergias na VPS e propaga a sincronização em tempo real
+   * Salva uma lista específica de bioenergias no Supabase e propaga a sincronização em tempo real
    */
   async updateCatalog(type: 'sensations' | 'phenomena' | 'fatuistica', items: string[]): Promise<boolean> {
     try {
       // 1. Salva localmente primeiro para resposta instantânea na UI
       localStorage.setItem(`energy_work_${type}`, JSON.stringify(items));
       
-      // 2. Persiste na VPS
-      await api.put('/api/energy-work/catalog', {
-        catalog_type: type,
-        items
-      });
+      // 2. Persiste no Supabase (UPSERT)
+      const { error } = await supabase
+        .from('energy_work_catalogs')
+        .upsert({
+          user_id: 'default',
+          catalog_type: type,
+          items: items,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
       
       // 3. Emite o evento no barramento para que outras abas ou modais abertos recarreguem imediatamente
       organismEventBus.emit('energyCatalogUpdated');
       return true;
     } catch (err) {
-      console.error(`[EnergyCatalogService] Falha ao salvar catálogo ${type} na VPS:`, err);
-      // Propaga o evento local mesmo se falhar para manter a UI funcionando em modo tolerante à falhas
+      console.error(`[EnergyCatalogService] Falha ao salvar catálogo ${type} no Supabase:`, err);
+      // Propaga o evento local mesmo se falhar para manter a UI funcionando
       organismEventBus.emit('energyCatalogUpdated');
       return false;
     }

@@ -520,7 +520,7 @@ export default function ManagerComponent({ onToggleSidebar, onBackToEditor, them
   // Safe Code monitor for side-effects when lock combination is registered
   React.useEffect(() => {
     if (safeCode.length === 3) {
-      if (safeCode === '007') {
+      if (safeCode === '007' || safeCode === '045') {
         setSafeStatus('granted');
         if (countdownIntervalRef.current) {
           clearInterval(countdownIntervalRef.current);

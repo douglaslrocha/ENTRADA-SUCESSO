@@ -35,8 +35,11 @@ import { useSwipeBack } from './hooks/useSwipeBack';
 import { haptics } from './services/HapticService';
 import { useOrganismSync } from './hooks/useOrganismSync';
 import { PerfProfiler } from './utils/perfProfiler';
+import { GlobalMemoryService } from './services/GlobalMemoryService';
+import { backgroundService } from './services/backgroundService';
 import { supabase } from './services/supabaseClient';
 import { organismEventBus } from './services/organismEventBus';
+import { presenceService } from './services/presenceService';
 
 import { useAuth } from './lib/AuthContext';
 import WelcomePage from './components/auth/WelcomePage';
@@ -148,6 +151,16 @@ export default function App() {
     taskService.syncWithBackend().catch(err => {
       console.warn('[App] Erro na sincronização inicial de tarefas:', err);
     });
+
+    // 4.5. Dispara sincronização inicial de backgrounds personalizados
+    backgroundService.syncWithBackend().catch(err => {
+      console.warn('[App] Erro na sincronização inicial de backgrounds:', err);
+    });
+
+    // 4.6. Dispara sincronização inicial do ecossistema de presenças
+    presenceService.syncWithBackend().catch(err => {
+      console.warn('[App] Erro na sincronização inicial de presenças:', err);
+    });
   }, []);
 
   const refreshCategories = useCallback(() => {
@@ -178,6 +191,20 @@ export default function App() {
           });
         } else if (table === 'diary_entries') {
           organismEventBus.emit('diaryUpdated', payload.new);
+        } else if (['identity_answers', 'identity_media'].includes(table)) {
+          organismEventBus.emit('identityUpdated', payload.new);
+        } else if (table === 'energy_work_catalogs') {
+          organismEventBus.emit('energyCatalogUpdated', payload.new);
+        } else if (table === 'amparadora_chats') {
+          GlobalMemoryService.syncWithBackend().then(() => {
+            organismEventBus.emit('amparadoraChatUpdated', payload.new);
+          });
+        } else if (table === 'experience_backgrounds') {
+          backgroundService.syncWithBackend();
+        } else if (table === 'presences') {
+          presenceService.syncWithBackend();
+        } else if (table === 'user_profile') {
+          window.dispatchEvent(new CustomEvent('auth-profile-sync-request'));
         }
       })
       .subscribe();

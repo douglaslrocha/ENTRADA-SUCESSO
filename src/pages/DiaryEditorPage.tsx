@@ -4931,6 +4931,9 @@ export default function DiaryEditorPage({
         essentialActions,
         tomorrowActions,
         recurringActions,
+        coverImage,
+        coverPosition,
+        docIcon,
       };
 
       // Update local object
@@ -4952,6 +4955,9 @@ export default function DiaryEditorPage({
     essentialActions,
     tomorrowActions,
     recurringActions,
+    coverImage,
+    coverPosition,
+    docIcon,
   ]);
 
   const toggleAction = (id: string) => {
@@ -5192,6 +5198,9 @@ export default function DiaryEditorPage({
         // Load individual states for editing buffer
         setTitle(entry.title.replace(/\n/g, " "));
         setDescription(entry.description || "");
+        setCoverImage(entry.coverImage || null);
+        setCoverPosition(entry.coverPosition !== undefined ? entry.coverPosition : 50);
+        setDocIcon(entry.docIcon || null);
 
         // Reset and Load content states with robust parsing to prevent string/array mismatch crashes
         const parseArray = (val: any) => {

@@ -1,3 +1,4 @@
+import { supabase } from './supabaseClient';
 import { safeLocalStorage } from '../utils/storage';
 
 export interface MemoryEntry {
@@ -25,13 +26,50 @@ const CONVERSATIONS_KEY = 'amparadora_conversations';
 const ACTIVE_CONV_KEY = 'amparadora_active_conversation_id';
 
 export const GlobalMemoryService = {
+  // Array local em memória (para carregar síncrono e responder instantâneo)
+  _conversations: [] as Conversation[],
+
+  /**
+   * Sincroniza o histórico com o Supabase e atualiza o cache local
+   */
+  async syncWithBackend(): Promise<Conversation[]> {
+    try {
+      const { data, error } = await supabase
+        .from('amparadora_chats')
+        .select('*')
+        .eq('user_id', 'default')
+        .order('last_update', { ascending: false });
+
+      if (error) throw error;
+
+      const remoteConvs: Conversation[] = (data || []).map(row => ({
+        id: row.id,
+        title: row.title,
+        messages: Array.isArray(row.messages) ? row.messages : JSON.parse(row.messages || '[]'),
+        lastUpdate: row.last_update
+      }));
+
+      this._conversations = remoteConvs;
+      safeLocalStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(remoteConvs));
+      return remoteConvs;
+    } catch (e) {
+      console.warn('[GlobalMemoryService] Falha ao sincronizar com Supabase:', e);
+      return this.getConversations();
+    }
+  },
+
   getConversations(): Conversation[] {
+    if (this._conversations.length > 0) return this._conversations;
     const stored = safeLocalStorage.getItem(CONVERSATIONS_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      this._conversations = JSON.parse(stored);
+      return this._conversations;
+    }
     return [];
   },
 
-  saveConversations(conversations: Conversation[]) {
+  async saveConversations(conversations: Conversation[]) {
+    this._conversations = conversations;
     safeLocalStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
   },
 
@@ -58,6 +96,18 @@ export const GlobalMemoryService = {
     const updated = [newConv, ...conversations];
     this.saveConversations(updated);
     this.setActiveConversationId(newConv.id);
+
+    // Persiste no Supabase em background
+    supabase.from('amparadora_chats').upsert({
+      id: newConv.id,
+      user_id: 'default',
+      title: newConv.title,
+      messages: newConv.messages,
+      last_update: newConv.lastUpdate
+    }).then(({ error }) => {
+      if (error) console.error('[GlobalMemoryService] Erro ao criar conversa no Supabase:', error);
+    });
+
     return newConv;
   },
 
@@ -69,8 +119,24 @@ export const GlobalMemoryService = {
     const conversations = this.getConversations();
     const index = conversations.findIndex(c => c.id === id);
     if (index !== -1) {
-      conversations[index] = { ...conversations[index], ...updates, lastUpdate: new Date().toISOString() };
+      const updatedConv = { 
+        ...conversations[index], 
+        ...updates, 
+        lastUpdate: new Date().toISOString() 
+      };
+      conversations[index] = updatedConv;
       this.saveConversations(conversations);
+
+      // Persiste no Supabase em background
+      supabase.from('amparadora_chats').upsert({
+        id: updatedConv.id,
+        user_id: 'default',
+        title: updatedConv.title,
+        messages: updatedConv.messages,
+        last_update: updatedConv.lastUpdate
+      }).then(({ error }) => {
+        if (error) console.error('[GlobalMemoryService] Erro ao atualizar conversa no Supabase:', error);
+      });
     }
   },
 
@@ -80,6 +146,14 @@ export const GlobalMemoryService = {
     if (this.getActiveConversationId() === id) {
       this.setActiveConversationId(conversations[0]?.id || null);
     }
+
+    // Deleta no Supabase em background
+    supabase.from('amparadora_chats')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('[GlobalMemoryService] Erro ao deletar conversa no Supabase:', error);
+      });
   },
 
   addEntry(conversationId: string, entry: Omit<MemoryEntry, 'id' | 'timestamp'>) {
@@ -109,7 +183,16 @@ export const GlobalMemoryService = {
   },
 
   clearAll() {
+    this._conversations = [];
     safeLocalStorage.removeItem(CONVERSATIONS_KEY);
     safeLocalStorage.removeItem(ACTIVE_CONV_KEY);
+
+    // Limpa todas as conversas do usuário no Supabase em background
+    supabase.from('amparadora_chats')
+      .delete()
+      .eq('user_id', 'default')
+      .then(({ error }) => {
+        if (error) console.error('[GlobalMemoryService] Erro ao limpar conversas no Supabase:', error);
+      });
   }
 };

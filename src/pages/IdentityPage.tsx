@@ -7,6 +7,7 @@ import { useAuth } from '../lib/AuthContext';
 import { haptics } from '../services/HapticService';
 import { identityService } from '../services/identityService';
 import { PWAInstallModal } from '../components/PWAInstallModal';
+import { organismEventBus } from '../services/organismEventBus';
 
 export const BLOCKS = [
   {
@@ -647,13 +648,29 @@ export function IdentityPage() {
   const bgIntensity = useTransform(scrollYProgress, [0, 1], [0.01, 0.1]);
   const bgBlur = useTransform(scrollYProgress, [0, 1], [80, 120]);
 
-  // Carrega dados do backend na montagem
+  // Carrega dados do backend na montagem e se inscreve no realtime do organismEventBus
   useEffect(() => {
-    identityService.loadAnswers().then(backendAnswers => {
-      if (Object.keys(backendAnswers).length > 0) {
-        setAnswers(backendAnswers);
-      }
+    const loadData = () => {
+      identityService.loadAnswers().then(backendAnswers => {
+        if (Object.keys(backendAnswers).length > 0) {
+          setAnswers(backendAnswers);
+        }
+      });
+      identityService.loadMedia().then(backendMedia => {
+        if (Object.keys(backendMedia).length > 0) {
+          setMedia(backendMedia);
+        }
+      });
+    };
+    
+    loadData();
+
+    // Ouvinte em tempo real
+    const unsub = organismEventBus.subscribe('identityUpdated', () => {
+      loadData();
     });
+
+    return () => unsub();
   }, []);
 
   // Mantém localStorage como cache local (para responsividade e fallback offline)

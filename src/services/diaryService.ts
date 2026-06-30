@@ -33,7 +33,13 @@ export interface DiaryEntry {
   weekday?: string;
   endAt?: number;
   duration?: number;
+  date?: number;
   
+  // Capa, Posição e Ícone (Notion style)
+  coverImage?: string | null;
+  coverPosition?: number;
+  docIcon?: string | null;
+
   dayOpening?: any;
   dreams?: any[];
   actions?: any[];
@@ -49,10 +55,12 @@ export interface DiaryEntry {
   recurringActions?: any[];
   tomorrowActions?: any[];
   content?: string;
+  newsContent?: string;
   insightsContent?: string;
   guidanceContent?: string;
   consolidationContent?: string;
   freeContent?: string;
+  analiseIa?: string;
   posture?: string[];
   mental?: string[];
   emotion?: string[];
@@ -95,10 +103,15 @@ export const diaryService = {
     const entries = (data || []).map(item => {
       const mapped = snakeToCamel(item);
       // Parsing de campos JSON arrays/objetos armazenados como string
-      const parseJsonFields = ['categories', 'gallery', 'dreams', 'actions', 'habits', 'insights', 'blocks', 'essentialActions', 'recurringActions', 'tomorrowActions', 'posture', 'mental', 'emotion', 'energy'];
+      const parseJsonFields = [
+        'categories', 'gallery', 'dreams', 'actions', 'habits', 'insights', 
+        'blocks', 'essentialActions', 'recurringActions', 'tomorrowActions', 
+        'posture', 'mental', 'emotion', 'energy', 'dayOpening', 'state', 
+        'guidance', 'daySynthesis', 'semanticEntities'
+      ];
       parseJsonFields.forEach(field => {
         if (typeof mapped[field] === 'string') {
-          try { mapped[field] = JSON.parse(mapped[field]); } catch { mapped[field] = []; }
+          try { mapped[field] = JSON.parse(mapped[field]); } catch { mapped[field] = field.endsWith('Opening') || field === 'state' || field === 'guidance' || field === 'daySynthesis' || field === 'semanticEntities' ? {} : []; }
         }
       });
       return mapped;
@@ -120,10 +133,15 @@ export const diaryService = {
     if (error) throw error;
     
     const mapped = snakeToCamel(data);
-    const parseJsonFields = ['categories', 'gallery', 'dreams', 'actions', 'habits', 'insights', 'blocks', 'essentialActions', 'recurringActions', 'tomorrowActions', 'posture', 'mental', 'emotion', 'energy'];
+    const parseJsonFields = [
+      'categories', 'gallery', 'dreams', 'actions', 'habits', 'insights', 
+      'blocks', 'essentialActions', 'recurringActions', 'tomorrowActions', 
+      'posture', 'mental', 'emotion', 'energy', 'dayOpening', 'state', 
+      'guidance', 'daySynthesis', 'semanticEntities'
+    ];
     parseJsonFields.forEach(field => {
       if (typeof mapped[field] === 'string') {
-        try { mapped[field] = JSON.parse(mapped[field]); } catch { mapped[field] = []; }
+        try { mapped[field] = JSON.parse(mapped[field]); } catch { mapped[field] = field.endsWith('Opening') || field === 'state' || field === 'guidance' || field === 'daySynthesis' || field === 'semanticEntities' ? {} : []; }
       }
     });
 

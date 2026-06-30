@@ -58,25 +58,28 @@ export const documentService = {
     });
   },
 
-  /**
-   * Sincroniza os workspaces locais com o banco de dados PostgreSQL
-   */
   async syncWithBackend() {
     try {
       console.log('[documentService] Sincronizando workspaces com o backend...');
       const data = await workspaceService.getWorkspaces();
       
-      // Se houver dados salvos no backend, atualiza o cache local
-      if (data.workspaces && data.workspaces.length > 0) {
-        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(data.workspaces));
-        organismEventBus.emit('managerChanged');
-        console.log('[documentService] Sincronização de workspaces realizada com sucesso.');
-      } else {
-        // Se o backend estiver vazio mas temos dados locais, envia os locais para o backend
-        const localWorkspaces = this.getWorkspaces();
-        if (localWorkspaces && localWorkspaces.length > 0) {
-          console.log('[documentService] Enviando dados locais iniciais para o backend...');
-          await workspaceService.syncWorkspaces({ workspaces: localWorkspaces });
+      if (data.workspaces) {
+        if (data.workspaces.length > 0) {
+          safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(data.workspaces));
+          organismEventBus.emit('managerChanged');
+          console.log('[documentService] Sincronização de workspaces realizada com sucesso.');
+        } else {
+          // O backend está vazio. Verificamos se é conta nova ou se o usuário deletou tudo.
+          const localWorkspaces = this.getWorkspaces();
+          const isDefault = JSON.stringify(localWorkspaces) === JSON.stringify(DEFAULT_ITEMS);
+          if (isDefault) {
+            console.log('[documentService] Conta nova detected. Enviando dados locais iniciais para o backend...');
+            await workspaceService.syncWorkspaces({ workspaces: localWorkspaces });
+          } else {
+            console.log('[documentService] O usuário limpou os workspaces. Sincronizando exclusão local...');
+            safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+            organismEventBus.emit('managerChanged');
+          }
         }
       }
     } catch (error) {

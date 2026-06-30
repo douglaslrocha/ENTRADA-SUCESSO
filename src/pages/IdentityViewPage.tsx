@@ -5,6 +5,7 @@ import { BLOCKS, INTERSTITIALS } from './IdentityPage';
 import { identityService } from '../services/identityService';
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Play, Volume2, Sparkles, LayoutGrid, ScrollText, X } from 'lucide-react';
 import { IdentityCard } from '../components/IdentityCard';
+import { organismEventBus } from '../services/organismEventBus';
 
 interface MediaItem {
   id?: string;
@@ -149,13 +150,16 @@ export function IdentityViewPage() {
 
     loadData();
 
-    // Listen for updates from IdentityPage
+    // Listen for updates from IdentityPage and Supabase Realtime
     const handleUpdate = () => {
       loadData();
     };
     window.addEventListener('identity-media-updated', handleUpdate);
+    const unsub = organismEventBus.subscribe('identityUpdated', handleUpdate);
+    
     return () => {
       window.removeEventListener('identity-media-updated', handleUpdate);
+      unsub();
     };
   }, []);
 

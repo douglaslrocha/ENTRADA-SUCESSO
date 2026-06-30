@@ -5,6 +5,7 @@ import { PresenceCircle } from '../components/PresenceCircle';
 import { PresenceModal } from '../components/PresenceModal';
 import { NewPresenceModal } from '../components/NewPresenceModal';
 import { presenceService, Presence } from '../services/presenceService';
+import { organismEventBus } from '../services/organismEventBus';
 
 interface PresencesPageProps {
   onToggleSidebar: () => void;
@@ -77,11 +78,18 @@ export const PresencesPage: React.FC<PresencesPageProps> = ({ onToggleSidebar, t
   useEffect(() => {
     refreshData();
 
+    const unsubscribe = organismEventBus.subscribe('presenceUpdated', () => {
+      refreshData();
+    });
+
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      unsubscribe();
+    };
   }, []);
 
   // Compute responsive variables

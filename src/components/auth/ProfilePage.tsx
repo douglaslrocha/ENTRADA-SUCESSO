@@ -27,6 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import { haptics } from '../../services/HapticService';
 import { PWAInstallModal } from '../PWAInstallModal';
 import { safeLocalStorage } from '../../utils/storage';
+import { supabase } from '../../services/supabaseClient';
 
 interface ProfilePageProps {
   onToggleSidebar?: () => void;
@@ -60,7 +61,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onToggleSidebar }) => {
   const [showBrandSaved, setShowBrandSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSaveBrand = () => {
+  const handleSaveBrand = async () => {
     safeLocalStorage.setItem('app_custom_name', appCustomName);
     safeLocalStorage.setItem('app_custom_description', appCustomDesc);
     safeLocalStorage.setItem('app_custom_icon_type', appIconType);
@@ -71,6 +72,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onToggleSidebar }) => {
     haptics.success();
     setShowBrandSaved(true);
     setTimeout(() => setShowBrandSaved(false), 2500);
+
+    // Sync to Supabase
+    try {
+      const { error } = await supabase
+        .from('user_profile')
+        .upsert({
+          user_id: 'default',
+          app_custom_name: appCustomName,
+          app_custom_description: appCustomDesc,
+          app_custom_icon_type: appIconType,
+          app_custom_icon_value: appIconValue,
+          updated_at: new Date().toISOString()
+        });
+      if (error) throw error;
+      console.log('[ProfilePage] Custom branding synced to Supabase.');
+    } catch (e) {
+      console.warn('[ProfilePage] Error saving custom branding to Supabase:', e);
+    }
   };
 
   const handleBrandLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +104,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onToggleSidebar }) => {
       reader.readAsDataURL(file);
     }
   };
+
+  useEffect(() => {
+    const reloadBrandStates = () => {
+      setAppCustomName(safeLocalStorage.getItem('app_custom_name') || 'Remix 1.7');
+      setAppCustomDesc(safeLocalStorage.getItem('app_custom_description') || 'Evolução Pessoal');
+      setAppIconType(safeLocalStorage.getItem('app_custom_icon_type') || 'default');
+      setAppIconValue(safeLocalStorage.getItem('app_custom_icon_value') || '/pwa-icon.svg');
+    };
+    window.addEventListener('app-brand-updated', reloadBrandStates);
+    return () => {
+      window.removeEventListener('app-brand-updated', reloadBrandStates);
+    };
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {

@@ -126,21 +126,46 @@ export const objectivesService = {
     const { data: tarefasData } = await supabase.from('tarefas').select('*');
 
     return {
-      objectives: (objetivosData || []).map(item => snakeToCamel(item)),
-      goals: (metasData || []).map(item => snakeToCamel(item)),
+      objectives: (objetivosData || []).map(item => {
+        const mapped = snakeToCamel(item);
+        if (typeof mapped.media === 'string') {
+          try { mapped.media = JSON.parse(mapped.media); } catch { mapped.media = []; }
+        }
+        if (typeof mapped.kpis === 'string') {
+          try { mapped.kpis = JSON.parse(mapped.kpis); } catch { mapped.kpis = []; }
+        }
+        if (typeof mapped.risks === 'string') {
+          try { mapped.risks = JSON.parse(mapped.risks); } catch { mapped.risks = []; }
+        }
+        if (typeof mapped.relatedObjectives === 'string') {
+          try { mapped.relatedObjectives = JSON.parse(mapped.relatedObjectives); } catch { mapped.relatedObjectives = []; }
+        }
+        if (typeof mapped.tags === 'string') {
+          try { mapped.tags = JSON.parse(mapped.tags); } catch { mapped.tags = []; }
+        }
+        return mapped;
+      }),
+      goals: (metasData || []).map(item => {
+        const mapped = snakeToCamel(item);
+        if (typeof mapped.actions === 'string') {
+          try { mapped.actions = JSON.parse(mapped.actions); } catch { mapped.actions = []; }
+        }
+        return mapped;
+      }),
       projects: [],
       tasks: (tarefasData || []).map(item => {
         const mapped = snakeToCamel(item);
         // Garante compatibilidade de tipos para campos JSON
-        if (typeof mapped.sensations === 'string') {
-          try { mapped.sensations = JSON.parse(mapped.sensations); } catch { mapped.sensations = []; }
-        }
-        if (typeof mapped.phenomena === 'string') {
-          try { mapped.phenomena = JSON.parse(mapped.phenomena); } catch { mapped.phenomena = []; }
-        }
-        if (typeof mapped.subtasks === 'string') {
-          try { mapped.subtasks = JSON.parse(mapped.subtasks); } catch { mapped.subtasks = []; }
-        }
+        const jsonFields = ['sensations', 'phenomena', 'subtasks', 'checklist', 'multimodalConfig', 'energyWorkExecution'];
+        jsonFields.forEach(field => {
+          if (typeof mapped[field] === 'string') {
+            try { 
+              mapped[field] = JSON.parse(mapped[field]); 
+            } catch { 
+              mapped[field] = field === 'multimodalConfig' || field === 'energyWorkExecution' ? {} : []; 
+            }
+          }
+        });
         return mapped;
       })
     };
@@ -152,15 +177,34 @@ export const objectivesService = {
   async syncTree(tree: ObjectivesTree): Promise<boolean> {
     try {
       if (tree.objectives?.length) {
-        const mappedObjs = tree.objectives.map(o => camelToSnake(o));
+        const mappedObjs = tree.objectives.map(o => {
+          const payload = camelToSnake(o);
+          if (payload.media && typeof payload.media !== 'string') payload.media = JSON.stringify(payload.media);
+          if (payload.kpis && typeof payload.kpis !== 'string') payload.kpis = JSON.stringify(payload.kpis);
+          if (payload.risks && typeof payload.risks !== 'string') payload.risks = JSON.stringify(payload.risks);
+          if (payload.related_objectives && typeof payload.related_objectives !== 'string') payload.related_objectives = JSON.stringify(payload.related_objectives);
+          if (payload.tags && typeof payload.tags !== 'string') payload.tags = JSON.stringify(payload.tags);
+          return payload;
+        });
         await supabase.from('objetivos').upsert(mappedObjs);
       }
       if (tree.goals?.length) {
-        const mappedGoals = tree.goals.map(g => camelToSnake(g));
+        const mappedGoals = tree.goals.map(g => {
+          const payload = camelToSnake(g);
+          if (payload.actions && typeof payload.actions !== 'string') payload.actions = JSON.stringify(payload.actions);
+          return payload;
+        });
         await supabase.from('metas').upsert(mappedGoals);
       }
       if (tree.tasks?.length) {
-        const mappedTasks = tree.tasks.map(t => camelToSnake(t));
+        const mappedTasks = tree.tasks.map(t => {
+          const payload = camelToSnake(t);
+          if (payload.subtasks && typeof payload.subtasks !== 'string') payload.subtasks = JSON.stringify(payload.subtasks);
+          if (payload.checklist && typeof payload.checklist !== 'string') payload.checklist = JSON.stringify(payload.checklist);
+          if (payload.multimodal_config && typeof payload.multimodal_config !== 'string') payload.multimodal_config = JSON.stringify(payload.multimodal_config);
+          if (payload.energy_work_execution && typeof payload.energy_work_execution !== 'string') payload.energy_work_execution = JSON.stringify(payload.energy_work_execution);
+          return payload;
+        });
         await supabase.from('tarefas').upsert(mappedTasks);
       }
       return true;
@@ -175,10 +219,11 @@ export const objectivesService = {
    */
   async saveObjective(id: string, objective: Partial<Objective>): Promise<Objective> {
     const dbPayload = camelToSnake({ ...objective, id });
-    if (dbPayload.media) dbPayload.media = JSON.stringify(dbPayload.media);
-    if (dbPayload.kpis) dbPayload.kpis = JSON.stringify(dbPayload.kpis);
-    if (dbPayload.risks) dbPayload.risks = JSON.stringify(dbPayload.risks);
-    if (dbPayload.metas) dbPayload.metas = JSON.stringify(dbPayload.metas);
+    if (dbPayload.media && typeof dbPayload.media !== 'string') dbPayload.media = JSON.stringify(dbPayload.media);
+    if (dbPayload.kpis && typeof dbPayload.kpis !== 'string') dbPayload.kpis = JSON.stringify(dbPayload.kpis);
+    if (dbPayload.risks && typeof dbPayload.risks !== 'string') dbPayload.risks = JSON.stringify(dbPayload.risks);
+    if (dbPayload.related_objectives && typeof dbPayload.related_objectives !== 'string') dbPayload.related_objectives = JSON.stringify(dbPayload.related_objectives);
+    if (dbPayload.tags && typeof dbPayload.tags !== 'string') dbPayload.tags = JSON.stringify(dbPayload.tags);
 
     const { data, error } = await supabase
       .from('objetivos')
@@ -187,7 +232,19 @@ export const objectivesService = {
       .single();
 
     if (error) throw error;
-    return snakeToCamel(data);
+    
+    const mapped = snakeToCamel(data);
+    if (typeof mapped.media === 'string') {
+      try { mapped.media = JSON.parse(mapped.media); } catch { mapped.media = []; }
+    }
+    if (typeof mapped.kpis === 'string') {
+      try { mapped.kpis = JSON.parse(mapped.kpis); } catch { mapped.kpis = []; }
+    }
+    if (typeof mapped.risks === 'string') {
+      try { mapped.risks = JSON.parse(mapped.risks); } catch { mapped.risks = []; }
+    }
+    
+    return mapped;
   },
 
   /**
@@ -203,6 +260,8 @@ export const objectivesService = {
    */
   async saveGoal(id: string, goal: Partial<Goal>): Promise<Goal> {
     const dbPayload = camelToSnake({ ...goal, id });
+    if (dbPayload.actions && typeof dbPayload.actions !== 'string') dbPayload.actions = JSON.stringify(dbPayload.actions);
+
     const { data, error } = await supabase
       .from('metas')
       .upsert(dbPayload)
@@ -210,7 +269,12 @@ export const objectivesService = {
       .single();
 
     if (error) throw error;
-    return snakeToCamel(data);
+    
+    const mapped = snakeToCamel(data);
+    if (typeof mapped.actions === 'string') {
+      try { mapped.actions = JSON.parse(mapped.actions); } catch { mapped.actions = []; }
+    }
+    return mapped;
   },
 
   /**
@@ -242,11 +306,14 @@ export const objectivesService = {
     const dbPayload = camelToSnake({ ...task, id });
     
     // Tratamento de tipos especiais do PostgreSQL / JSON
-    if (Array.isArray(dbPayload.subtasks)) dbPayload.subtasks = JSON.stringify(dbPayload.subtasks);
-    if (Array.isArray(dbPayload.sensations)) dbPayload.sensations = JSON.stringify(dbPayload.sensations);
-    if (Array.isArray(dbPayload.phenomena)) dbPayload.phenomena = JSON.stringify(dbPayload.phenomena);
-    if (Array.isArray(dbPayload.recurrence_days)) dbPayload.recurrence_days = JSON.stringify(dbPayload.recurrence_days);
-    if (Array.isArray(dbPayload.linked_document_ids)) dbPayload.linked_document_ids = JSON.stringify(dbPayload.linked_document_ids);
+    if (dbPayload.subtasks && typeof dbPayload.subtasks !== 'string') dbPayload.subtasks = JSON.stringify(dbPayload.subtasks);
+    if (dbPayload.checklist && typeof dbPayload.checklist !== 'string') dbPayload.checklist = JSON.stringify(dbPayload.checklist);
+    if (dbPayload.multimodal_config && typeof dbPayload.multimodal_config !== 'string') dbPayload.multimodal_config = JSON.stringify(dbPayload.multimodal_config);
+    if (dbPayload.energy_work_execution && typeof dbPayload.energy_work_execution !== 'string') dbPayload.energy_work_execution = JSON.stringify(dbPayload.energy_work_execution);
+    if (dbPayload.sensations && typeof dbPayload.sensations !== 'string') dbPayload.sensations = JSON.stringify(dbPayload.sensations);
+    if (dbPayload.phenomena && typeof dbPayload.phenomena !== 'string') dbPayload.phenomena = JSON.stringify(dbPayload.phenomena);
+    if (dbPayload.recurrence_days && typeof dbPayload.recurrence_days !== 'string') dbPayload.recurrence_days = JSON.stringify(dbPayload.recurrence_days);
+    if (dbPayload.linked_document_ids && typeof dbPayload.linked_document_ids !== 'string') dbPayload.linked_document_ids = JSON.stringify(dbPayload.linked_document_ids);
 
     const { data, error } = await supabase
       .from('tarefas')
@@ -257,9 +324,16 @@ export const objectivesService = {
     if (error) throw error;
     
     const mapped = snakeToCamel(data);
-    if (typeof mapped.subtasks === 'string') mapped.subtasks = JSON.parse(mapped.subtasks);
-    if (typeof mapped.sensations === 'string') mapped.sensations = JSON.parse(mapped.sensations);
-    if (typeof mapped.phenomena === 'string') mapped.phenomena = JSON.parse(mapped.phenomena);
+    const jsonFields = ['subtasks', 'checklist', 'multimodalConfig', 'energyWorkExecution', 'sensations', 'phenomena', 'recurrenceDays', 'linkedDocumentIds'];
+    jsonFields.forEach(field => {
+      if (typeof mapped[field] === 'string') {
+        try { 
+          mapped[field] = JSON.parse(mapped[field]); 
+        } catch { 
+          mapped[field] = field === 'multimodalConfig' || field === 'energyWorkExecution' ? {} : []; 
+        }
+      }
+    });
     
     return mapped;
   },

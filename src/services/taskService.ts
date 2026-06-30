@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { safeLocalStorage } from '../utils/storage';
 
 export interface Task {
   id: string;
@@ -17,11 +18,11 @@ export const taskService = {
       if (stored) return JSON.parse(stored);
       return [];
     }
-    const tasks = (data || []).map((t: any) => ({
+    const tasks: Task[] = (data || []).map((t: any) => ({
       id: t.id,
       title: t.title,
       description: t.description || '',
-      status: t.status === 'done' ? 'completed' : 'pending',
+      status: (t.status === 'done' ? 'completed' : 'pending') as 'completed' | 'pending',
       createdAt: t.created_at || new Date().toISOString()
     }));
     safeLocalStorage.setItem('personal_os_tasks', JSON.stringify(tasks));
